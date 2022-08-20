@@ -1,0 +1,34 @@
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 5;
+alias uptr  R0;
+uptr= SP;
+
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13] = SP;
+SP=[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 11]*512 - 1;
+backup;
+
+alias filedescaddr R1;
+alias filedesc R2;
+filedescaddr = ([PTBR + 2*((uptr-4)/512)])*512 + (uptr-4)%512;
+filedesc = [filedescaddr];
+
+if(filedesc != -2)
+  then
+    alias retaddr R5;
+    retaddr = ([PTBR + 2*(uptr-1)/ 512])*512 + (uptr-1)%512;
+    [retaddr] = -1;
+    print "[sys_write]:X";
+else
+    alias word R5;
+    word = [([PTBR + 2*(uptr-3)/512])*512 + (uptr-3)%512];
+    print word;
+    alias retaddr R6;
+    retaddr = ([PTBR + 2*(uptr-1)/ 512])*512 + (uptr-1)%512;
+    [retaddr] = 0;
+endif;
+
+restore;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 0;
+SP=[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13];
+ireturn;
+
+

@@ -8,7 +8,7 @@ MOV R2, "Write"
 BRKP
 EQ R0, R2
 JZ 78
-MOV R0, 6
+MOV R0, 5
 PUSH R0 
 MOV R0, BP
 MOV R1,5

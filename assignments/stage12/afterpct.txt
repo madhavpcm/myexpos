@@ -1,0 +1,15 @@
+Tick: 		
+PID: 		1
+PPID: 		
+UserID: 		
+State: 		(RUNNING, )
+Swap Flag: 		
+Inode Index: 		
+Input Buffer: 		
+Mode Flag: 		0
+User Area Swap Status: 		
+User Area Page Number: 		80
+Kernel Stack Pointer: 		20
+User Stack Pointer: 		4102
+PTBR: 		29716
+PTLR: 		10

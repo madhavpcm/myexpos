@@ -10,6 +10,7 @@ SP=[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 11]*512 - 1;
 
 alias filedescaddr R1;
 alias filedesc R2;
+PTBR = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE +1]*16 + 14];
 filedescaddr = ([PTBR + 2*((uptr-4)/512)])*512 + (uptr-4)%512;
 filedesc = [filedescaddr];
 
@@ -20,6 +21,7 @@ if(filedesc != -2)
     retaddr = ([PTBR + 2*(uptr-1)/ 512])*512 + (uptr-1)%512;
 
     [retaddr] = -1;
+    print filedesc;
     print "[sys_write]:X";
 else
     alias word R5;
@@ -36,5 +38,3 @@ endif;
 //saving uptr back toSP
 SP=[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13];
 ireturn;
-
-

@@ -3,11 +3,11 @@ int main(){
       int i, r, dummy;
     enddecl
     begin
-      i=101;
+      i=1;
       //r = exposcall("Read", -2, dummy);
-      while(i <= 200) do
+      while(i <= 100) do
         r = exposcall("Write", -2, i);
-        i=i+1;
+        i=i+2;
       endwhile;
       return 0;
     end

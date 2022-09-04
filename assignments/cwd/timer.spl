@@ -1,59 +1,19 @@
 //STORE UPTR
 //DONT USE ALIASES BEFORE BACKUP
-breakpoint;
 [PROCESS_TABLE +[SYSTEM_STATUS_TABLE+1]*16+ 13] = SP;
 //UAP set by us
 SP = [PROCESS_TABLE +[SYSTEM_STATUS_TABLE +1]*16 + 11]*512 -1;
 //backup reg
 backup;
-alias cPID R0;
-cPID = [SYSTEM_STATUS_TABLE+1];
-alias cENTRY R1;
-//backup current process stack,
-//GET entry
-cENTRY = PROCESS_TABLE + cPID*16;
-print "TIMER";
-print cPID;
-//set status to ready state
-[cENTRY + 4] = READY; 
-//save the kptr offset 
-[cENTRY + 12] = SP%512; 
-//save the current pids PTBR
-[cENTRY + 14] = PTBR;
-//save the current ptlr as 10
-[cENTRY + 15] = 10;
-//save the current pids uptr
-alias nPID R2;
-if(cPID == 0)then
-  nPID=1;
-else
-  nPID=0;
-endif;
-//assign the new pid 
-alias nENTRY R3;
-//get the new pids process table entry
-nENTRY = PROCESS_TABLE + nPID*16;
-//set the stack pointer to the new pids kptr, i.e new pids UAP*512 + KPTR offset
-SP=[nENTRY + 11]*512 + [nENTRY+12];
-//set the ptbr to that pids page table base
-PTBR = [nENTRY + 14];
-//set tthe ptlr to that pids page table length
-PTLR = [nENTRY + 15];
-//set the current pid to the newly decided pid
-[SYSTEM_STATUS_TABLE +1] = nPID;
 
-//check if the new pid state is CREATED or not 
-//if no then just set the new pid  state to RUNNING
-breakpoint;
-if([nENTRY + 4] == CREATED)then
-  [nENTRY + 4] = RUNNING;
-  SP = [nENTRY + 13];
-  ireturn;
-endif;
-[nENTRY +4] =RUNNING;
-//set the SP to the 
+//save reg in use
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]* 16 + 4] = READY;
+//set reg r0 r1 r2 as arg1 arg2 arg3
+call SCHEDULER;
+
 restore;
+//pop reg in use
 //DONT USE ALIASES AFTER RESTORE
 SP=[PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 +13];
-breakpoint;
+
 ireturn;

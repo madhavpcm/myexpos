@@ -1,14 +1,10 @@
-
-breakpoint;
 //module 7 (BOOT_MODULE)
 loadi(54, 67);
 loadi(55, 68);
 
 SP = 82*512-1;
-breakpoint;
 call BOOT_MODULE;
 
-breakpoint;
 PTBR=PAGE_TABLE_BASE;
 PTLR=10;
 //library
@@ -48,12 +44,11 @@ idle_process_table = PROCESS_TABLE;
 [idle_process_table + 0*16 + 12] = 0;
 [idle_process_table + 0*16 + 13] = 8*512;
 [idle_process_table + 0*16 + 14] = PTBR;
-[idle_process_table + 0*16 + 15] = 10;
+[idle_process_table + 0*16 + 15] = PTLR;
 [81*512] =[69*512 + 1];
 
 [SYSTEM_STATUS_TABLE + 1]  = 0;
 SP=8*512;
-breakpoint;
 ireturn;
 //DISK
 //

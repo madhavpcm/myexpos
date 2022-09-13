@@ -27,6 +27,14 @@ loadi(23,36);
 loadi(16,29);
 loadi(17,30);
 
+//MOD_0
+loadi(40, 53);
+loadi(41, 54);
+
+//MOD_4
+loadi(48, 61);
+loadi(49, 62);
+
 //MOD_7
 loadi(50,63);
 loadi(51,64);
@@ -177,4 +185,5 @@ up2_process_table= PROCESS_TABLE+3*16;
 [PROCESS_TABLE + 14*16 + 4] = TERMINATED;
 [PROCESS_TABLE + 15*16 + 4] = TERMINATED;
 
+[TERMINAL_STATUS_TABLE] = 0;
 return;

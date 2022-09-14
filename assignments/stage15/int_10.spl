@@ -2,10 +2,14 @@
 breakpoint;
 alias i R9;
 alias flag R10;
+alias offset R11;
+alias currPID R12;
+currPID = [SYSTEM_STATUS_TABLE+1];
 i=1;
 flag=0;
 
 while(i < 16) do
+  breakpoint;
   offset = (i+currPID)%16;
   if([PROCESS_TABLE + offset*16 + 4] != TERMINATED) then
     call SCHEDULER;

@@ -5,31 +5,37 @@ alias retVal R5;
 
 if( funcNo == 1) then
   //do f1
-else
-  if ( funcNo == 2) then
-  //do f2
-  else
-    if( funcNo == 3) then
-      multipush(R0,R1,R2,R3);
-      funcNo=8;
-      currPID=[SYSTEM_STATUS_TABLE + 1];
-      call MOD_0;
-      //f3
-      multipop(R0,R1,R2,R3);
-    else
-      if( funcNo == 4) then
-        //f4
-      multipush(R0,R1,R2,R3);
-      funcNo = 9;
-      currPID=[SYSTEM_STATUS_TABLE + 1];
-      call MOD_0;
-
-      retVal = R0;
-      multipop(R0, R1, R2 , R3);
-      R0 = retVal;
-      else
-        //error
-      endif;
-    endif;
-  endif;
+  R0=-1;
+  return;
 endif;
+
+if ( funcNo == 2) then
+//do f2
+  R0=-1;
+  return;
+endif;
+
+if( funcNo == 3) then
+  multipush(R0,R1,R2,R3);
+  funcNo=8;
+  currPID=[SYSTEM_STATUS_TABLE + 1];
+  call MOD_0;
+  //f3
+  multipop(R0,R1,R2,R3);
+  print R3;
+endif;
+
+if( funcNo == 4) then
+  //f4
+  multipush(R0,R1,R2,R3);
+  funcNo = 9;
+  currPID=[SYSTEM_STATUS_TABLE + 1];
+  call MOD_0;
+
+  retVal = R0;
+  multipop(R0, R1, R2 , R3);
+  R0 = retVal;
+endif;//error
+
+R0=-1;
+return;

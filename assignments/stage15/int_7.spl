@@ -21,13 +21,16 @@ if(filedesc != -2)
     retaddr = ([PTBR + 2*(uptr-1)/ 512])*512 + (uptr-1)%512;
 
     [retaddr] = -1;
-    multipush(R0,R1,R2,R3,BP);
+    multipush(R0,R1,R2,R3);
     //error
-    multipop(R0,R1,R2,R3,BP);
+    print "error";
+    multipop(R0,R1,R2,R3);
+    retaddr = ([PTBR + 2*(uptr-1)/ 512])*512 + (uptr-1)%512;
+    [retaddr] = 0;
 else
     alias word R5;
     word = [([PTBR + 2*(uptr-3)/512])*512 + (uptr-3)%512];
-    multipush(R0,R1,R2,R3,R5,BP);
+    multipush(R0,R1,R2,R3,R5);
 
     //terminal write function call
     R1 = 3;  
@@ -35,7 +38,13 @@ else
     R3 = word;
     call MOD_4;
 
-    multipop(R0,R1,R2,R3,R5,BP);
+    R1 = 4;
+    R2 = [SYSTEM_STATUS_TABLE +1];
+    call MOD_4;
+
+    multipop(R0,R1,R2,R3,R5);
+
+    
     alias retaddr R6;
     retaddr = ([PTBR + 2*(uptr-1)/ 512])*512 + (uptr-1)%512;
     [retaddr] = 0;

@@ -1,0 +1,14 @@
+load --module 0 /home/madhavpcm/myexpos/assignments/stage15/mod_0.xsm
+load --module 4 /home/madhavpcm/myexpos/assignments/stage15/mod_4.xsm
+load --module 5 /home/madhavpcm/myexpos/assignments/stage15/mod_5.xsm
+load --module 7 /home/madhavpcm/myexpos/assignments/stage15/mod_7.xsm
+load --int=10 /home/madhavpcm/myexpos/assignments/stage15/int_10.xsm
+load --int=7 /home/madhavpcm/myexpos/assignments/stage15/int_7.xsm
+load --os /home/madhavpcm/myexpos/assignments/stage15/osloader.xsm
+load --int=timer /home/madhavpcm/myexpos/assignments/stage15/timer.xsm
+load --library /home/madhavpcm/myexpos/expl/library.lib
+load --idle /home/madhavpcm/myexpos/assignments/stage15/user/idle.xsm
+load --init /home/madhavpcm/myexpos/assignments/stage15/user/init.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage15/user/user1.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage15/user/user2.xsm
+dump --inodeusertable

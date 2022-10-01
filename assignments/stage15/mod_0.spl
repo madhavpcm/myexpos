@@ -1,3 +1,4 @@
+// Resource Manager module
 alias funcNo R1;
 alias currPID R2;
 alias currEntry R5;
@@ -5,6 +6,7 @@ alias iter R6;
 
 currEntry = PROCESS_TABLE + currPID*16;
 
+// Acquire terminal function
 if( funcNo == 8) then
 
   while([TERMINAL_STATUS_TABLE] == 1) do
@@ -17,10 +19,11 @@ if( funcNo == 8) then
   [TERMINAL_STATUS_TABLE] =1;
   [TERMINAL_STATUS_TABLE + 1] = currPID;
 
+  R0 = 0;
   return;
 
 endif;
-
+// Release terminal function
 if( funcNo == 9) then
 
   if( [TERMINAL_STATUS_TABLE +1 ] != currPID) then
@@ -38,6 +41,7 @@ if( funcNo == 9) then
       iter=iter+1;
     endwhile;
 
+    breakpoint;
     R0 = 0;
     return;
   endif;

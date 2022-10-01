@@ -1,3 +1,4 @@
+//EXIT
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 4] = TERMINATED;
 breakpoint;
 alias i R9;

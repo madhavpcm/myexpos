@@ -1,3 +1,4 @@
+// Device Manager
 alias funcNo R1;
 alias currPID R2;
 alias wordOut R3;
@@ -23,6 +24,14 @@ if( funcNo == 3) then
   //f3
   multipop(R0,R1,R2,R3);
   print R3;
+
+  multipush(R0,R1,R2,R3);
+  funcNo=9;
+  currPID=[SYSTEM_STATUS_TABLE + 1];
+  call MOD_0;
+  multipop(R0,R1,R2,R3);
+  return;
+
 endif;
 
 if( funcNo == 4) then

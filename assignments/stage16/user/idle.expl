@@ -1,0 +1,13 @@
+int main(){
+    decl
+      int i;
+      int j;
+    enddecl
+    begin
+      while(1==1)do
+        breakpoint;
+        i=1;
+        endwhile;
+        return 0;
+    end
+  }

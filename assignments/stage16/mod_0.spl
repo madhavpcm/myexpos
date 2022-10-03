@@ -1,0 +1,55 @@
+// Resource Manager module
+alias funcNo R1;
+alias currPID R2;
+alias currEntry R5;
+alias iter R6;
+
+currEntry = PROCESS_TABLE + currPID*16;
+
+// Acquire terminal function
+if( funcNo == ACQUIRE_TERMINAL) then
+
+  while([TERMINAL_STATUS_TABLE] == 1) do
+    [currEntry + 4] = WAIT_TERMINAL;
+    multipush(R0,R1,R2,R3,R5);
+    call MOD_5;
+    multipop(R0,R1,R2,R3,R5);
+  endwhile;
+
+  [TERMINAL_STATUS_TABLE] =1;
+  [TERMINAL_STATUS_TABLE + 1] = currPID;
+
+  breakpoint;
+  R0 = 0;
+  return;
+
+endif;
+// Release terminal function
+if( funcNo == RELEASE_TERMINAL) then
+
+  if( [TERMINAL_STATUS_TABLE +1 ] != currPID) then
+    R0 = -1;
+    breakpoint;
+    return;
+  else
+    [TERMINAL_STATUS_TABLE] = 0;
+    iter=0;
+
+    while(iter < 16) do 
+      currEntry = PROCESS_TABLE + iter*16;
+      if([currEntry + 4] == WAIT_TERMINAL) then
+        breakpoint;
+        [currEntry + 4] = READY;
+      endif;
+      iter=iter+1;
+    endwhile;
+
+    breakpoint;
+    R0 = 0;
+    return;
+  endif;
+
+endif;
+//error
+R0=-1;
+return;

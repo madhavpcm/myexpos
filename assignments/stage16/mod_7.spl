@@ -178,7 +178,7 @@ up2_process_table= PROCESS_TABLE+3*16;
 [92*512]=[91*512 + 1];
 
 //set other process table statuses to terminated
-[PROCESS_TABLE + 2*16 + 4] = TERMINATED;
+//[PROCESS_TABLE + 2*16 + 4] = TERMINATED;
 [PROCESS_TABLE + 3*16 + 4] = TERMINATED;
 [PROCESS_TABLE + 4*16 + 4] = TERMINATED;
 [PROCESS_TABLE + 5*16 + 4] = TERMINATED;

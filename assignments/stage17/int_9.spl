@@ -1,0 +1,133 @@
+//Exec system call
+alias uptr R0;
+alias arg1 R1;
+alias iter R2;
+alias flag R3;
+alias cpid R7;
+alias finode R8;
+alias uap R9;
+alias ptbr R10;
+
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1] * 16 + 13] = SP;
+//mode flag
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = INT_EXEC;
+uptr = SP;
+cpid = [SYSTEM_STATUS_TABLE + 1];
+
+SP = [PROCESS_TABLE + cpid * 16 + 11]*512-1;
+
+arg1 = [ [PTBR + (uptr-4)*2/512]*512 + (uptr-4)%512 ];
+
+flag = 0;
+iter=0 ;
+
+//loop inode table
+while( iter < MAX_FILE_NUM ) do
+  if([INODE_TABLE + iter*16 + 1] == arg1 )then
+    flag = 1;
+    finode = iter;
+    break;
+  endif;
+  iter=iter+1;
+endwhile;
+
+//return if file isnt found
+breakpoint;
+if(flag == 0) then 
+  SP = [PROCESS_TABLE + cpid * 16 + 13];
+  [PROCESS_TABLE + cpid * 16 + 9] = 0;
+  //return value
+  [ [ PTBR + (uptr-1) * 2/512]*512 + (uptr-1) % 512] = -1;
+  breakpoint;
+  ireturn;
+endif;
+
+//exit syscall
+multipush(R0,R1,R2,R3,R7, R8);
+
+R1 = EXIT_PROCESS;
+R2 = cpid;
+// process manager
+call MOD_1;
+
+multipop(R0,R1,R2, R3,R7, R8);
+
+//incrementing MEMORY_FREE_LIST
+breakpoint;
+uap = [PROCESS_TABLE + cpid * 16 + 11];
+[MEMORY_FREE_LIST + uap] =  1;
+
+
+//decrementing mem free count
+[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
+
+SP = [PROCESS_TABLE + cpid * 16  + 11];
+[PROCESS_TABLE + cpid *16 + 4] = RUNNING;
+[PROCESS_TABLE + cpid *16 + 7] = finode;
+
+ptbr = [PROCESS_TABLE +cpid*16 + 14];
+
+[ptbr + 0] = 63;
+[ptbr + 1] = "0100";
+[ptbr + 2] = 64;
+[ptbr + 3] = "0100";
+
+// heap
+multipush(R0,R1,R2,R3,R5,R7,R8,R9);
+R1= GET_FREE_PAGE;
+call MOD_2;
+[ptbr + 4] = R0;
+[ptbr + 5] = "0110";
+multipop(R0,R1,R2,R3,R5,R7,R8,R9);
+
+multipush(R0,R1,R2,R3,R5,R7,R8,R9);
+R1= GET_FREE_PAGE;
+call MOD_2;
+[ptbr + 6] = R0;
+[ptbr + 7] = "0110";
+multipop(R0,R1,R2,R3,R5,R7,R8,R9);
+
+iter=0;
+while(iter < 4) do
+  if([INODE_TABLE + finode*16 + 8 + iter] != -1) then
+    multipush(R1,R2,R3,R5,R7,R8,R9);
+
+    R1 = GET_FREE_PAGE;
+    call MOD_2;
+
+    multipop(R1,R2,R3,R5,R7,R8,R9);
+
+    [ptbr + 8 + iter*2] = R0;
+    [ptbr + 8 + iter*2 + 1] = "0100";
+    loadi(R0, [INODE_TABLE + finode*16 + 8 + iter]);
+
+  else
+
+    [ptbr + 8 + iter*2] = -1;
+    [ptbr + 8 + iter*2 + 1] = "0000";
+
+  endif;
+  iter = iter + 1;
+endwhile;
+//stack
+multipush(R0,R1,R2,R3,R5,R7,R8,R9);
+R1= GET_FREE_PAGE;
+call MOD_2;
+[ptbr + 16] = R0;
+[ptbr + 17] = "0110";
+multipop(R0,R1,R2,R3,R5,R7,R8,R9);
+
+multipush(R0,R1,R2,R3,R5,R7,R8,R9);
+R1= GET_FREE_PAGE;
+call MOD_2;
+[ptbr + 18] = R0;
+[ptbr + 19] = "0110";
+multipop(R0,R1,R2,R3,R5,R7,R8,R9);
+
+//set SP to starting of exec value
+[[ptbr+16]*512] = [[ptbr+8]*512 + 1];
+
+[PROCESS_TABLE + cpid * 16 + 9] = 0;
+SP = 8*512;
+ireturn;
+

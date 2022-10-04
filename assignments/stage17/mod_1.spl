@@ -1,0 +1,73 @@
+alias funcno R1 ;
+alias cpid R2 ;
+alias uap R5;
+alias ptbr R6;
+alias iter R7;
+
+breakpoint;
+if( funcno == EXIT_PROCESS) then
+  multipush(R1, R2, R5);
+  
+  R1= FREE_PAGE_TABLE;
+  R2=cpid;
+  call MOD_1;
+  
+  multipop(R1, R2, R5);
+
+  multipush(R1, R2, R5);
+  
+  R1= FREE_USER_AREA_PAGE;
+  R2=cpid;
+  call MOD_1;
+  
+  multipop(R1, R2, R5);
+
+  [PROCESS_TABLE + cpid*16 + 4] = TERMINATED;
+  breakpoint;
+  return;
+  
+endif;
+
+if (funcno == FREE_USER_AREA_PAGE) then
+  uap = [PROCESS_TABLE + cpid *16 + 11];
+  multipush(R1, R2, R5);
+
+  R1 = RELEASE_PAGE;
+  R2 = uap;
+  call MOD_2;
+
+  multipop(R1, R2, R5);
+
+  breakpoint;
+  return;
+endif;
+
+if (funcno == FREE_PAGE_TABLE) then
+  ptbr = [PROCESS_TABLE + cpid* 16 +14];
+  //library invalidation
+  [ptbr + 0] = -1;
+  [ptbr + 1] = "0000";
+  [ptbr + 2] = -1;
+  [ptbr + 3] = "0000";
+
+  iter =4;
+  while(iter < 20) do
+    if( [ptbr + iter] != -1) then
+
+      multipush(R0, R1, R5,R6);
+      //[ptbr +iter ] = -1;
+      //[ptbr +iter +1 ] = "0000";
+      R1 = RELEASE_PAGE;
+      R2 = ptbr+iter;
+
+      multipop(R0, R1, R5,R6);
+
+      [ptbr + iter] = -1;
+      [ptbr + iter+ 1] = "0000";
+    endif;
+    iter=iter+2;
+  endwhile;
+  breakpoint;
+  return;
+endif;
+

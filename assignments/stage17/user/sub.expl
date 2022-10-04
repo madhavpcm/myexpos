@@ -1,0 +1,11 @@
+int main(){
+    decl
+      int  r, q;
+      str i;
+    enddecl
+    begin
+      i="Exec worked";
+      r = exposcall("Write", -2,i);
+    return 0;
+    end
+  }

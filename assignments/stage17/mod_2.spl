@@ -31,12 +31,12 @@ if(funcno == GET_FREE_PAGE) then
     if([MEMORY_FREE_LIST+ iter] == 0)then 
       [MEMORY_FREE_LIST +iter ] =1;
       retval = iter;
+      breakpoint;
       return;
     endif;
     iter=iter+1; 
   endwhile;
 
-  breakpoint;
 endif;
 
 if(funcno == RELEASE_PAGE) then
@@ -56,5 +56,6 @@ if(funcno == RELEASE_PAGE) then
   endwhile;
 
   R0=pageno;
+  breakpoint;
   return;
 endif;

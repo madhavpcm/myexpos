@@ -4,8 +4,8 @@ int main(){
     enddecl
     begin
       i=2;
-      r = exposcall("Read", -1, dummy);
-      while(i <= dummy) do
+      //r = exposcall("Read", -2, dummy);
+      while(i <= 100) do
         r = exposcall("Write", -2, i);
         i=i+2;
       endwhile;

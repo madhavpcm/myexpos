@@ -1,11 +1,10 @@
-//Memory Manager Module
+//Module 2: Memory Manager Module
 
 alias retval R0;
 alias funcno R1;
 alias pageno R2;
 alias iter R3;
 
-breakpoint;
 if(funcno == GET_FREE_PAGE) then
   //increment wait_mem_count
   [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;
@@ -31,7 +30,6 @@ if(funcno == GET_FREE_PAGE) then
     if([MEMORY_FREE_LIST+ iter] == 0)then 
       [MEMORY_FREE_LIST +iter ] =1;
       retval = iter;
-      breakpoint;
       return;
     endif;
     iter=iter+1; 
@@ -44,18 +42,17 @@ if(funcno == RELEASE_PAGE) then
 
   if([MEMORY_FREE_LIST +pageno ] == 0) then
     [SYSTEM_STATUS_TABLE + 2]= [SYSTEM_STATUS_TABLE + 2]+1;
-  endif;
-
-  iter=0;
-  while(iter < MAX_PROC_NUM) do
+    iter=0;
+    while(iter < MAX_PROC_NUM) do
 
     if([PROCESS_TABLE + iter*16 + 4] == WAIT_MEM && [PROCESS_TABLE + iter*16 + 1] != -1) then
       [PROCESS_TABLE + iter*16 + 4] = READY;
     endif;
     iter = iter + 1;
-  endwhile;
+    endwhile;
+  endif;
+
 
   R0=pageno;
-  breakpoint;
   return;
 endif;

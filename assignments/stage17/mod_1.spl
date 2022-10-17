@@ -1,10 +1,10 @@
+// Module 1 : Process Manager Module
 alias funcno R1 ;
 alias cpid R2 ;
 alias uap R5;
 alias ptbr R6;
 alias iter R7;
 
-breakpoint;
 if( funcno == EXIT_PROCESS) then
   multipush(R1, R2, R5);
   
@@ -23,13 +23,13 @@ if( funcno == EXIT_PROCESS) then
   multipop(R1, R2, R5);
 
   [PROCESS_TABLE + cpid*16 + 4] = TERMINATED;
-  breakpoint;
   return;
   
 endif;
 
 if (funcno == FREE_USER_AREA_PAGE) then
   uap = [PROCESS_TABLE + cpid *16 + 11];
+  breakpoint;
   multipush(R1, R2, R5);
 
   R1 = RELEASE_PAGE;
@@ -37,8 +37,8 @@ if (funcno == FREE_USER_AREA_PAGE) then
   call MOD_2;
 
   multipop(R1, R2, R5);
-
   breakpoint;
+
   return;
 endif;
 
@@ -58,7 +58,8 @@ if (funcno == FREE_PAGE_TABLE) then
       //[ptbr +iter ] = -1;
       //[ptbr +iter +1 ] = "0000";
       R1 = RELEASE_PAGE;
-      R2 = ptbr+iter;
+      R2 = [ptbr+iter];
+      call MEMORY_MANAGER;
 
       multipop(R0, R1, R5,R6);
 
@@ -67,7 +68,6 @@ if (funcno == FREE_PAGE_TABLE) then
     endif;
     iter=iter+2;
   endwhile;
-  breakpoint;
   return;
 endif;
 

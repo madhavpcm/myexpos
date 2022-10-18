@@ -1,0 +1,18 @@
+int main(){
+    decl
+      int i, r, q;
+      int a,b;
+      str input;
+    enddecl
+    begin
+      q=1;
+      r = exposcall("Write", -2, "Init:");
+      r = exposcall("Read", -1, input);
+      r = exposcall("Write", -2, input);
+      breakpoint;
+      r = exposcall("Exec", input);
+      r= exposcall("Write", -2, "Error with exec");
+
+      return 0;
+    end
+  }

@@ -32,13 +32,11 @@ while( iter < MAX_FILE_NUM ) do
 endwhile;
 
 //return if file isnt found
-breakpoint;
 if(flag == 0) then 
   SP = [PROCESS_TABLE + cpid * 16 + 13];
   [PROCESS_TABLE + cpid * 16 + 9] = 0;
   //return value
   [ [ PTBR + (uptr-1) * 2/512]*512 + (uptr-1) % 512] = -1;
-  breakpoint;
   ireturn;
 endif;
 
@@ -51,17 +49,16 @@ R2 = cpid;
 call MOD_1;
 
 multipop(R0,R1,R2, R3,R7, R8);
-
-//incrementing MEMORY_FREE_LIST
 breakpoint;
+//incrementing MEMORY_FREE_LIST
 uap = [PROCESS_TABLE + cpid * 16 + 11];
-[MEMORY_FREE_LIST + uap] =  1;
+[MEMORY_FREE_LIST + uap] =  [MEMORY_FREE_LIST+ uap] +1;
 
 
 //decrementing mem free count
 [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
 
-SP = [PROCESS_TABLE + cpid * 16  + 11];
+SP = [PROCESS_TABLE + cpid * 16  + 11]*512 - 1;
 [PROCESS_TABLE + cpid *16 + 4] = RUNNING;
 [PROCESS_TABLE + cpid *16 + 7] = finode;
 
@@ -98,7 +95,17 @@ while(iter < 4) do
 
     [PTBR + 8 + iter*2] = R0;
     [PTBR + 8 + iter*2 + 1] = "0100";
-    loadi(R0, [INODE_TABLE + finode*16 + 8 + iter]);
+    //loadi(R0, [INODE_TABLE + finode*16 + 8 + iter]);
+
+    multipush(R1,R2,R3,R5,R7,R8,R9);
+
+    R1 = DISK_LOAD;
+    R4 = [INODE_TABLE + finode*16 + 8 + iter]; 
+    R3 = R0;
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+    call MOD_4;
+
+    multipop(R1,R2,R3,R5,R7,R8,R9);
 
   else
 
@@ -112,6 +119,7 @@ endwhile;
 multipush(R0,R1,R2,R3,R5,R7,R8,R9);
 R1= GET_FREE_PAGE;
 call MOD_2;
+breakpoint;
 [PTBR + 16] = R0;
 [PTBR + 17] = "0110";
 multipop(R0,R1,R2,R3,R5,R7,R8,R9);
@@ -119,13 +127,14 @@ multipop(R0,R1,R2,R3,R5,R7,R8,R9);
 multipush(R0,R1,R2,R3,R5,R7,R8,R9);
 R1= GET_FREE_PAGE;
 call MOD_2;
+breakpoint;
 [PTBR + 18] = R0;
 [PTBR + 19] = "0110";
 multipop(R0,R1,R2,R3,R5,R7,R8,R9);
 
 //set SP to starting of exec value
 [[PTBR+16]*512] = [[PTBR+8]*512 + 1];
-
+breakpoint;
 [PROCESS_TABLE + cpid * 16 + 9] = 0;
 SP = 8*512;
 ireturn;

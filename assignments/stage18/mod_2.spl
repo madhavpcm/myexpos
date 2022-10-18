@@ -1,0 +1,58 @@
+//Module 2: Memory Manager Module
+
+alias retval R0;
+alias funcno R1;
+alias pageno R2;
+alias iter R3;
+
+if(funcno == GET_FREE_PAGE) then
+  //increment wait_mem_count
+  [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;
+  // if mem free count is 0, schedule another process, i.e when there are no memory pagesavailable
+  while([SYSTEM_STATUS_TABLE +2] ==0)do
+
+    //set process state to wait_mem
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 4]  = WAIT_MEM;
+
+    multipush(R1, R2);
+
+    //try scheduling another process
+    call MOD_5;
+    
+    multipop(R1, R2);
+  endwhile;
+  
+  [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] - 1;
+  [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
+  
+  iter =0;
+  while(iter < MAX_MEM_PAGE) do
+    if([MEMORY_FREE_LIST+ iter] == 0)then 
+      [MEMORY_FREE_LIST +iter ] =1;
+      retval = iter;
+      return;
+    endif;
+    iter=iter+1; 
+  endwhile;
+
+endif;
+
+if(funcno == RELEASE_PAGE) then
+  [MEMORY_FREE_LIST + pageno]=[MEMORY_FREE_LIST +pageno] - 1;
+
+  if([MEMORY_FREE_LIST +pageno ] == 0) then
+    [SYSTEM_STATUS_TABLE + 2]= [SYSTEM_STATUS_TABLE + 2]+1;
+    iter=0;
+    while(iter < MAX_PROC_NUM) do
+
+    if([PROCESS_TABLE + iter*16 + 4] == WAIT_MEM ) then
+      [PROCESS_TABLE + iter*16 + 4] = READY;
+    endif;
+    iter = iter + 1;
+    endwhile;
+  endif;
+
+
+  R0=pageno;
+  return;
+endif;

@@ -1,0 +1,25 @@
+alias iter R2;
+alias uptr R4;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE+ 1] * 16 + 13] = SP;
+uptr = SP;
+
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+ 1] * 16 + 11]*512 - 1;
+
+backup;
+
+[DISK_STATUS_TABLE] = 0;
+
+iter =0 ;
+breakpoint;
+while(iter < 16) do
+  if([PROCESS_TABLE + iter*16 + 4] == WAIT_DISK)  then
+    [PROCESS_TABLE + iter*16 +4] = READY; 
+  endif;
+  iter=iter+1;
+endwhile;
+
+restore;
+
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13];
+breakpoint;
+ireturn;

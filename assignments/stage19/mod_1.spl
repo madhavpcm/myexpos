@@ -1,0 +1,135 @@
+// Module 1 : Process Manager Module
+alias funcno R1 ;
+alias cpid R2 ;
+alias uap R5;
+alias ptbr R6;
+alias iter R7;
+
+if( funcno == EXIT_PROCESS) then
+  multipush(R1, R2, R5);
+  
+  R1= FREE_PAGE_TABLE;
+  R2=cpid;
+  call MOD_1;
+  
+  multipop(R1, R2, R5);
+
+  multipush(R1, R2, R5);
+  
+  R1= FREE_USER_AREA_PAGE;
+  R2=cpid;
+  call MOD_1;
+  
+  multipop(R1, R2, R5);
+
+  [PROCESS_TABLE + cpid*16 + 4] = TERMINATED;
+  return;
+  
+endif;
+
+if (funcno == FREE_USER_AREA_PAGE) then
+  uap = [PROCESS_TABLE + cpid *16 + 11];
+  multipush(R1, R2, R5);
+
+  R1 = RELEASE_PAGE;
+  R2 = uap;
+  call MOD_2;
+
+  multipop(R1, R2, R5);
+
+  return;
+endif;
+
+if (funcno == FREE_PAGE_TABLE) then
+  ptbr = [PROCESS_TABLE + cpid* 16 +14];
+  //library invalidation
+  [ptbr + 0] = -1;
+  [ptbr + 1] = "0000";
+  [ptbr + 2] = -1;
+  [ptbr + 3] = "0000";
+
+  iter =4;
+  while(iter < 20) do
+    if( [ptbr + iter] != -1) then
+
+      //Release page
+      multipush(R0, R1, R5,R6);
+      R1 = RELEASE_PAGE;
+      R2 = [ptbr+iter];
+      call MEMORY_MANAGER;
+
+      multipop(R0, R1, R5,R6);
+
+      //invalidate page
+      [ptbr + iter] = -1;
+      [ptbr + iter+ 1] = "0000";
+    endif;
+    iter=iter+2;
+  endwhile;
+
+  //go through heap pages of the current process 
+  if([DISK_MAP_TABLE + cpid*10 + 2] != -1) then
+    //Call release_block
+    multipush(R0, R1, R5 ,R6);
+
+    R1 = RELEASE_BLOCK;
+    R3 = cpid;
+    R2 = [DISK_MAP_TABLE + cpid*10 + 2];
+
+    call MEMORY_MANAGER;
+
+    multipop(R0, R1, R5 ,R6);
+
+    //invalidate the entry
+    [DISK_MAP_TABLE + cpid*10 + 2] = -1;
+  endif;
+
+  if([DISK_MAP_TABLE + cpid*10 + 3] != -1) then
+    multipush(R0, R1, R5 ,R6);
+
+    R1 = RELEASE_BLOCK;
+    R3 = cpid;
+    R2 = [DISK_MAP_TABLE + cpid*10 + 3];
+
+    call MEMORY_MANAGER;
+
+    multipop(R0, R1, R5 ,R6);
+
+    //invalidate the entry
+    [DISK_MAP_TABLE + cpid*10 + 3] = -1;
+  endif;
+
+  //go through stack pages of the current process and invalidate any entry
+  if([DISK_MAP_TABLE + cpid*10 + 8] != -1) then
+    multipush(R0, R1, R5 ,R6);
+
+    R1 = RELEASE_BLOCK;
+    R3 = cpid;
+    R2 = [DISK_MAP_TABLE + cpid*10 + 8];
+
+    call MEMORY_MANAGER;
+
+    multipop(R0, R1, R5 ,R6);
+
+    //invalidate the entry
+    [DISK_MAP_TABLE + cpid*10 + 8] = -1;
+  endif;
+
+  if([DISK_MAP_TABLE + cpid*10 + 9] != -1) then
+    multipush(R0, R1, R5 ,R6);
+
+    R1 = RELEASE_BLOCK;
+    R3 = cpid;
+    R2 = [DISK_MAP_TABLE + cpid*10 + 9];
+
+    call MEMORY_MANAGER;
+
+    multipop(R0, R1, R5 ,R6);
+
+    //invalidate the entry
+    [DISK_MAP_TABLE + cpid*10 + 9] = -1;
+  endif;
+
+  return;
+endif;
+

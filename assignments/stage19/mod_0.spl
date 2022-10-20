@@ -9,14 +9,19 @@ currEntry = PROCESS_TABLE + currPID*16;
 // Acquire terminal function
 if( funcNo == ACQUIRE_TERMINAL) then
 
+  // If terminal is occupied loop 
   while([TERMINAL_STATUS_TABLE] == 1) do
+    // Set status to wait_terminal
     [currEntry + 4] = WAIT_TERMINAL;
     multipush(R0,R1,R2,R3,R5);
+    //Schedule something else until terminal is free
     call SCHEDULER;
     multipop(R0,R1,R2,R3,R5);
   endwhile;
 
+  //Acquire the terminal
   [TERMINAL_STATUS_TABLE] =1;
+  // Set which proc is using terminal
   [TERMINAL_STATUS_TABLE + 1] = currPID;
 
   R0 = 0;
@@ -25,17 +30,20 @@ if( funcNo == ACQUIRE_TERMINAL) then
 endif;
 // Release terminal function
 if( funcNo == RELEASE_TERMINAL) then
-
+  // Only the process which acquired can release
   if( [TERMINAL_STATUS_TABLE +1 ] != currPID) then
     R0 = -1;
     return;
   else
+    //Release it
     [TERMINAL_STATUS_TABLE] = 0;
     iter=0;
 
+    //Loop through all processes
     while(iter < 16) do 
       currEntry = PROCESS_TABLE + iter*16;
       if([currEntry + 4] == WAIT_TERMINAL) then
+        //Set all processes waiting for terminal to ready
         [currEntry + 4] = READY;
       endif;
       iter=iter+1;
@@ -48,20 +56,26 @@ if( funcNo == RELEASE_TERMINAL) then
 endif;
 //error
 
+//Acquire disk
 if (funcNo == ACQUIRE_DISK) then
   
+  //If disk is busy schedule to something else
   while( [DISK_STATUS_TABLE ] == 1) do 
+    //Set current disk status to wait_disk
     [currEntry + 4] = WAIT_DISK;
     multipush(R1,R2,R3,R4,R5);
     call SCHEDULER;
     multipop(R1,R2,R3,R4,R5);
   endwhile;
 
+  //Acquire the disk
   [DISK_STATUS_TABLE] = 1;
+  //Set which process is using disk now
   [DISK_STATUS_TABLE + 4] = currPID;
 
   return;
     
 endif;
+//error
 R0=-1;
 return;

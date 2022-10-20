@@ -6,6 +6,7 @@ alias ptbr R6;
 alias iter R7;
 
 if( funcno == EXIT_PROCESS) then
+  //Free the page table of the process
   multipush(R1, R2, R5);
   
   R1= FREE_PAGE_TABLE;
@@ -14,6 +15,7 @@ if( funcno == EXIT_PROCESS) then
   
   multipop(R1, R2, R5);
 
+//Free the user area page no of the process
   multipush(R1, R2, R5);
   
   R1= FREE_USER_AREA_PAGE;
@@ -22,21 +24,25 @@ if( funcno == EXIT_PROCESS) then
   
   multipop(R1, R2, R5);
 
+//Set status as terminated
   [PROCESS_TABLE + cpid*16 + 4] = TERMINATED;
   return;
   
 endif;
 
 if (funcno == FREE_USER_AREA_PAGE) then
+  // Get the UAP
   uap = [PROCESS_TABLE + cpid *16 + 11];
   multipush(R1, R2, R5);
 
+  //Release the page
   R1 = RELEASE_PAGE;
   R2 = uap;
   call MOD_2;
 
   multipop(R1, R2, R5);
 
+  //This return works 
   return;
 endif;
 

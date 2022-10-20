@@ -60,11 +60,13 @@ if( funcNo == TERMINAL_READ) then
 
 endif;//error
 
+//Disk load function
 if ( funcNo == DISK_LOAD) then
   alias currpid R2;
   alias pageno R3;
   alias blockno R4;
 
+  //Acquire the device first
   multipush(R1,R2,R3,R4);
   
   R1 = ACQUIRE_DISK;
@@ -73,14 +75,20 @@ if ( funcNo == DISK_LOAD) then
 
   multipop(R1,R2,R3,R4);
 
+  //Set disk status to load mode
   [DISK_STATUS_TABLE + 1] = 0;
+  //Set page associated with disk op
   [DISK_STATUS_TABLE + 2] = pageno;
+  //Set block associated with disk op
   [DISK_STATUS_TABLE + 3] = blockno;
 
+  //blocking load 
   load(pageno, blockno);
 
+  //Set current state of process to WAITDISK
   [PROCESS_TABLE + currpid*16 + 4] = WAIT_DISK;
 
+  //schedule another process
   multipush(R1,R2,R3,R4);
 
   call SCHEDULER;

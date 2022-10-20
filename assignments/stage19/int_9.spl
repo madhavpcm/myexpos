@@ -8,14 +8,18 @@ alias finode R8;
 alias uap R9;
 alias ptbr R10;
 
+//Store SP to UPTR
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1] * 16 + 13] = SP;
-//mode flag
+//Mode flag to show it is doing int_exec
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = INT_EXEC;
 uptr = SP;
+//Current process Id
 cpid = [SYSTEM_STATUS_TABLE + 1];
 
+//Set SP to UAP
 SP = [PROCESS_TABLE + cpid * 16 + 11]*512-1;
 
+//Address translate and get the executable name
 arg1 = [ [PTBR + (uptr-4)*2/512]*512 + (uptr-4)%512 ];
 
 flag = 0;
@@ -23,8 +27,10 @@ iter=0 ;
 
 //loop inode table
 while( iter < MAX_FILE_NUM ) do
+  //Check all files with filename == exec name (arg1) 
   if([INODE_TABLE + iter*16 + 1] == arg1 )then
     flag = 1;
+  //If executable name is found break;
     finode = iter;
     break;
   endif;
@@ -33,9 +39,11 @@ endwhile;
 
 //return if file isnt found
 if(flag == 0) then 
+  //replace sp back
   SP = [PROCESS_TABLE + cpid * 16 + 13];
+  //reset mode
   [PROCESS_TABLE + cpid * 16 + 9] = 0;
-  //return value
+  //Address translate return value
   [ [ PTBR + (uptr-1) * 2/512]*512 + (uptr-1) % 512] = -1;
   ireturn;
 endif;
@@ -49,19 +57,24 @@ R2 = cpid;
 call MOD_1;
 
 multipop(R0,R1,R2, R3,R7, R8);
-//incrementing MEMORY_FREE_LIST
+//get uap
 uap = [PROCESS_TABLE + cpid * 16 + 11];
+//reclaim UAP, as this was deallocated by EXIT_PROCESS
 [MEMORY_FREE_LIST + uap] =  [MEMORY_FREE_LIST+ uap] +1;
-
 
 //decrementing mem free count
 [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
 
+//Re initialize to base of kernel stack (UAP)
 SP = [PROCESS_TABLE + cpid * 16  + 11]*512 - 1;
+// set state to running
 [PROCESS_TABLE + cpid *16 + 4] = RUNNING;
+//Set disk
 [PROCESS_TABLE + cpid *16 + 7] = finode;
 
+//SETUP PAGE TABLE
 
+//library
 [PTBR + 0] = 63;
 [PTBR + 1] = "0100";
 [PTBR + 2] = 64;
@@ -73,16 +86,20 @@ SP = [PROCESS_TABLE + cpid * 16  + 11]*512 - 1;
 [PTBR + 6] = -1;
 [PTBR + 7] = "0000";
 
+//get a free page for stack 2
 multipush(R0,R1,R2,R3,R5,R7,R8,R9);
 R1= GET_FREE_PAGE;
 call MOD_2;
+//setup the new page in page table
 [PTBR + 16] = R0;
 [PTBR + 17] = "0110";
 multipop(R0,R1,R2,R3,R5,R7,R8,R9);
 
+//get a free page for stack 2
 multipush(R0,R1,R2,R3,R5,R7,R8,R9);
 R1= GET_FREE_PAGE;
 call MOD_2;
+//setup the new page in page table
 [PTBR + 18] = R0;
 [PTBR + 19] = "0110";
 multipop(R0,R1,R2,R3,R5,R7,R8,R9);
@@ -90,9 +107,11 @@ multipop(R0,R1,R2,R3,R5,R7,R8,R9);
 multipush(R1,R2,R3,R5,R7,R8,R9);
 
 //sus code iter*16
+//Get code page instead of free page
 R1 = GET_CODE_PAGE;
 R2 = [INODE_TABLE + iter*16 + 8];
 call MOD_2;
+//Get the code page 
 [PTBR + 8] = R0;
 [PTBR + 9] = "0100";
 [PTBR + 10] = -1;
@@ -106,7 +125,6 @@ multipop(R1,R2,R3,R5,R7,R8,R9);
 
 // LAZY LOAD Code block 1
 breakpoint;
-//
 
 //stack
 

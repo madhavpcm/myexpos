@@ -1,0 +1,50 @@
+//Read Operation
+//storing this so that os can show that this interrupt is not available 
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = INT_WRITE;
+alias uptr  R0;
+uptr= SP;
+//saving UPTR
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13] = SP;
+//setting stack to kernel stack
+SP=[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 11]*512 - 1;
+//backing up context
+
+alias filedescaddr R1;
+alias filedesc R2;
+//uptr-4 is a virtual address, so manually translate
+
+filedescaddr = ([PTBR + ((uptr-4)/512)*2])*512 + (uptr-4)%512;
+filedesc = [filedescaddr];
+
+if(filedesc != -1)
+  then
+    alias retaddr R5;
+    //return value
+    retaddr = ([PTBR + (uptr-1)*2/ 512])*512 + (uptr-1)%512;
+
+    [retaddr] = -1;
+else
+    alias word R5; 
+    //virtual address of word
+    word = [([PTBR +(uptr-3)*2/512])*512 + (uptr-3)%512];
+    multipush(R0,R1,R2,R3);
+
+    //terminal write function call
+    R1 = 4;  
+    R2 = [SYSTEM_STATUS_TABLE+1];
+    R3 = word;
+    call MOD_4;
+
+    multipop(R0,R1,R2,R3);
+
+    alias retaddr R6;
+    retaddr = ([PTBR + (uptr-1)*2/ 512])*512 + (uptr-1)%512;
+    [retaddr] = 0;
+endif;
+
+//restoring context
+//setting mode bit to 0 for user mode
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 0;
+//saving uptr back toSP
+SP=[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13];
+ireturn;

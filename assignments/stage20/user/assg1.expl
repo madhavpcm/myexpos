@@ -1,0 +1,71 @@
+type
+  List
+  {
+    int data;
+    List next;
+  }
+endtype
+
+decl
+    List head;
+enddecl
+
+int main()
+{
+  decl
+    int length, x;
+    int temp;
+    int a;
+    int r;
+    List p, q;
+  enddecl
+
+  begin
+    x = initialize();
+    
+    head=null;
+
+    a=1;
+    length =100;
+    q=head;
+    while (a<=100)  do
+      p=alloc();
+      p.data=a;
+      p.next=null;
+
+      if (head==null) then
+        head=p;
+        q=p;
+      else
+        q.next=p;
+        q=q.next;
+      endif;
+      a=a+1;
+    endwhile;
+
+    r = exposcall("Fork");
+    if(r == -1) then
+      r = exposcall("Write", -2, "Er.Fork");
+    else
+      if(r == 0) then
+        //child
+        p=head;
+        while(p!=null)  do
+          temp = exposcall("Write", -2, p.data);
+          p=p.next;
+          p=p.next;
+        endwhile;
+      else
+        //parent;
+        p=head.next;
+        while(p!=null)  do
+          temp = exposcall("Write", -2, p.data);
+          p=p.next;
+          p=p.next;
+        endwhile;
+      endif;
+    endif;
+    return 0;
+  end
+}
+

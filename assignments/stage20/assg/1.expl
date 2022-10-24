@@ -1,0 +1,20 @@
+int main(){
+  decl
+    int i, r, q;
+    int a,b;
+    str input;
+  enddecl
+  begin
+    q=1;
+    r = exposcall("Write", -2, "init");
+    r = exposcall("Fork");
+    if(r != 0) then
+      //parent
+      r = exposcall("Exec", "even.xsm");
+    else
+      //child
+      r = exposcall("Exec", "odd.xsm");
+    endif;
+    return 0;
+  end
+}

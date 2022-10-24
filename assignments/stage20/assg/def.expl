@@ -1,0 +1,19 @@
+int main(){
+    decl
+      int i, r, q;
+      int a,b;
+      str input;
+    enddecl
+    begin
+      q=1;
+      r = exposcall("Write", -2, "init");
+      r = exposcall("Fork");
+      breakpoint;
+      if(r != 0) then
+        r = exposcall("Write", -2, "parent");
+      else
+        r = exposcall("Write", -2, "child");
+      endif;
+      return 0;
+    end
+  }

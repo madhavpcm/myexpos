@@ -1,0 +1,209 @@
+// Module 1 : Process Manager Module
+alias funcno R1 ;
+alias cpid R2 ;
+alias uap R5;
+alias ptbr R6;
+alias iter R7;
+alias pentry R8;
+
+if( funcno == GET_PCB_ENTRY) then
+  //no cpid
+  iter=0;
+  while(iter < 16)do 
+    pentry = PROCESS_TABLE + iter*16;
+    //terminated process are free to donate process table entry
+    if([pentry + 4] == TERMINATED) then
+      R0=iter;
+      //Set ptbr to corresponding value
+      //$Set pTLR to 10 
+      [pentry + 1] = iter;
+      [pentry + 4] = ALLOCATED;
+      [pentry + 14] = PAGE_TABLE_BASE + iter*20;
+      [pentry + 15] = 10;
+      return;
+    endif;
+    iter=iter+1;
+  endwhile;
+  R0=-1;
+  return;
+endif;
+if( funcno == EXIT_PROCESS) then
+  iter=0;
+  //No need for int_exec bcz it is a process replacement
+  if([PROCESS_TABLE + cpid * 16 + 9] != INT_EXEC) then
+    while(iter < 16) do
+      pentry = PROCESS_TABLE + iter*16;
+      //If the boi  is waiting( and said sir died before calling ) then make it ready
+      if ([pentry+4] == WAIT_PROCESS && [pentry+5] == cpid) then
+        [pentry+4] = READY;
+      endif;
+      //Make it an orphan if 
+      if ([pentry+2] == cpid) then
+        [pentry+2] = -1;
+      endif;
+      iter=iter+1;
+    endwhile;
+  endif;
+  //Free the page table of the process
+  multipush(R1, R2, R5);
+  
+  R1= FREE_PAGE_TABLE;
+  R2=cpid;
+  call MOD_1;
+  
+  multipop(R1, R2, R5);
+
+//Free the user area page no of the process
+  multipush(R1, R2, R5);
+  
+  R1= FREE_USER_AREA_PAGE;
+  R2=cpid;
+  call MOD_1;
+  
+  multipop(R1, R2, R5);
+
+//Set status as terminated
+  [PROCESS_TABLE + cpid*16 + 4] = TERMINATED;
+  return;
+  
+endif;
+
+if (funcno == FREE_USER_AREA_PAGE) then
+  // Get the UAP
+  uap = [PROCESS_TABLE + cpid *16 + 11];
+
+  alias rentry R8;  
+
+  iter=0;
+  while(iter < 8) do
+    rentry = uap*512 + RESOURCE_TABLE_OFFSET + iter*2;
+    if([rentry] == SEMAPHORE) then
+      //release this semaphore
+      multipush(R1,R2,R4,R5,R7,R8);
+      R1 = RELEASE_SEMAPHORE;
+      R2 = [SYSTEM_STATUS_TABLE + 1];
+      R3 = [rentry+1];
+      call RESOURCE_MANAGER;
+      multipop(R1,R2,R4,R5,R7,R8);
+    endif;
+    //invalidate
+    [rentry] = -1;
+    iter=iter+1;
+  endwhile;
+
+  multipush(R1, R2, R5);
+
+  //Release the page
+  R1 = RELEASE_PAGE;
+  R2 = uap;
+  call MEMORY_MANAGER;
+
+  multipop(R1, R2, R5);
+
+  //This return works 
+  return;
+endif;
+
+if (funcno == FREE_PAGE_TABLE) then
+  ptbr = [PROCESS_TABLE + cpid* 16 +14];
+  //library invalidation
+  if(ptbr != PTBR) then
+    print "sus";
+  endif;
+  [ptbr + 0] = -1;
+  [ptbr + 1] = "0000";
+  [ptbr + 2] = -1;
+  [ptbr + 3] = "0000";
+
+  iter =4;
+  while(iter < 20) do
+    if( [ptbr + iter] != -1) then
+
+      //Release page
+      multipush(R0, R1, R2, R5,R6);
+      R1 = RELEASE_PAGE;
+      R2 = [ptbr+iter];
+      call MEMORY_MANAGER;
+
+      multipop(R0, R1 ,R2, R5,R6);
+
+      //invalidate page
+      [ptbr + iter] = -1;
+      [ptbr + iter+ 1] = "0000";
+    endif;
+    iter=iter+2;
+  endwhile;
+  
+  alias dentry R10;
+  dentry = DISK_MAP_TABLE + cpid*10 ;
+  //go through heap pages of the current process 
+  if([dentry + 2] != -1) then
+    //Call release_block
+    multipush(R0, R1,R2, R5 ,R6, R10);
+
+    R1 = RELEASE_BLOCK;
+    R3 = cpid;
+    R2 = [dentry+ 2];
+
+    call MEMORY_MANAGER;
+
+    multipop(R0, R1,R2, R5 ,R6,R10);
+
+    //invalidate the entry
+    [dentry + 2] = -1;
+  endif;
+
+  if([dentry+ 3] != -1) then
+    multipush(R0, R1,R2, R5 ,R6, R10);
+
+    R1 = RELEASE_BLOCK;
+    R3 = cpid;
+    R2 = [dentry+ 3];
+
+    call MEMORY_MANAGER;
+
+    multipop(R0, R1,R2, R5 ,R6,R10);
+
+    //invalidate the entry
+    [dentry + 3] = -1;
+  endif;
+
+  //go through stack pages of the current process and invalidate any entry
+  if([dentry+ 8] != -1) then
+    multipush(R0, R1,R2, R5 ,R6,R10);
+
+    R1 = RELEASE_BLOCK;
+    R3 = cpid;
+    R2 = [dentry+ 8];
+
+    call MEMORY_MANAGER;
+
+    multipop(R0, R1,R2, R5 ,R6,R10);
+
+    //invalidate the entry
+    [dentry + 8] = -1;
+  endif;
+
+  if([dentry+ 9] != -1) then
+    multipush(R0, R1, R5 ,R6,R10);
+
+    R1 = RELEASE_BLOCK;
+    R3 = cpid;
+    R2 = [dentry + 9];
+
+    call MEMORY_MANAGER;
+
+    multipop(R0, R1, R5 ,R6,R10);
+
+    //invalidate the entry
+    [dentry+ 9] = -1;
+  endif;
+
+  [dentry + 4] =-1;
+  [dentry + 5] =-1;
+  [dentry + 6] =-1;
+  [dentry + 7] =-1;
+
+  return;
+endif;
+

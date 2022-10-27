@@ -1,0 +1,129 @@
+//Semlock and Semunlock wrapper
+alias cpid R1;
+alias centry R2;
+alias uptr R3;
+alias syscall R4;
+
+cpid=[SYSTEM_STATUS_TABLE + 1];
+centry = PROCESS_TABLE + cpid*16;
+
+//Switch Stacks
+[centry + 13] = SP;
+uptr = SP;
+SP = [centry + 11]*512 -1;
+
+//Extract Syscall
+syscall = [[PTBR + (uptr-5)*2/512]*512 + (uptr-5)%512];
+
+//semlock syscall
+if( syscall == INT_SEMLOCK) then
+  //mode
+  [centry+ 9] = INT_SEMLOCK;
+
+  alias semid R6;
+  alias sentry R7;
+  alias rentry R8;  
+  //Get argument 1 , i.e semid
+  semid = [[PTBR + (uptr-4)*2/512]*512 + (uptr-4)%512];
+  //get resource table from uap 
+  rentry = [centry + 11]*512 + RESOURCE_TABLE_OFFSET;
+  
+  //invlaid case
+  if( semid < 0 || semid > 7 || [rentry + semid*2] != SEMAPHORE) then
+    //set return value to -1
+    [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -1;
+    //byebye
+    [centry + 9] =0;
+    //Switch stacks
+    SP = [centry + 13];
+    ireturn;
+  endif;
+
+  alias semx R9;
+  semx =[rentry + 2*semid + 1];
+  sentry = SEMAPHORE_TABLE + semx*4;
+
+  while([sentry] != -1 && [sentry] != cpid )do
+  //if the semaphore is locked by other boi
+  //change make this boi wait
+    [centry + 4] = WAIT_SEMAPHORE;
+  //set tuple to sentry so that we can know which other boi this boi is waiting for
+    [centry + 5] = semx;
+    
+  //change boi
+    multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9);
+    call SCHEDULER;
+    multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9);
+  endwhile;
+
+  //lock it
+  [sentry] = cpid;
+  [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = 0;
+
+endif;
+
+if( syscall == INT_SEMUNLOCK) then
+  //mode
+  [centry+ 9] = INT_SEMUNLOCK;
+  alias semid R6;
+  alias sentry R7;
+  alias rentry R8;  
+  alias pentry R9;
+  alias iter R10;
+  //Get argument 1 , i.e semid
+  semid = [[PTBR + (uptr-4)*2/512]*512 + (uptr-4)%512];
+  //get resource table from uap 
+  rentry = [centry + 11]*512 + RESOURCE_TABLE_OFFSET;
+
+  //Invalid case
+  if( semid < 0 || semid > 7 || [rentry + semid*2] != SEMAPHORE) then
+    //set return value to -1
+    [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -1;
+    //byebye
+    [centry + 9] =0;
+    //Switch stacks
+    SP = [centry + 13];
+    ireturn;
+  endif;
+
+  alias semx R11;
+  semx =[rentry + 2*semid + 1];
+  sentry = SEMAPHORE_TABLE + semx*4;
+
+//if semaphore is locked
+  if([sentry] != -1) then
+    if([sentry] != [SYSTEM_STATUS_TABLE+1]) then
+      //return -2;
+      [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -2;
+      //byebye
+      [centry + 9] =0;
+      //Switch stacks
+      SP = [centry + 13];
+      ireturn;
+    endif;
+
+    //unlock it
+    [sentry] = -1;
+    iter=0;
+    //loop thru all bois
+    while(iter < 16) do
+
+      pentry = PROCESS_TABLE + iter*16;
+      //if boi was waiting for this semaphore
+      if([pentry +4 ] == WAIT_SEMAPHORE && [pentry + 5] == semx)then
+        //make him ready
+        [pentry+4]= READY;
+      endif;
+      iter=iter+1;
+    endwhile;
+  endif;
+
+  [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = 0;
+
+endif;
+
+
+[centry + 9] =0;
+//Switch stacks
+SP = [centry + 13];
+ireturn;

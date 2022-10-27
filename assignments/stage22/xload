@@ -1,0 +1,22 @@
+load --module 0 /home/madhavpcm/myexpos/assignments/stage19/mod_0.xsm
+load --module 1 /home/madhavpcm/myexpos/assignments/stage19/mod_1.xsm
+load --module 2 /home/madhavpcm/myexpos/assignments/stage19/mod_2.xsm
+load --module 4 /home/madhavpcm/myexpos/assignments/stage19/mod_4.xsm
+load --module 5 /home/madhavpcm/myexpos/assignments/stage19/mod_5.xsm
+load --module 7 /home/madhavpcm/myexpos/assignments/stage19/mod_7.xsm
+load --int=10 /home/madhavpcm/myexpos/assignments/stage19/int_10.xsm
+load --int=6 /home/madhavpcm/myexpos/assignments/stage19/int_6.xsm
+load --int=7 /home/madhavpcm/myexpos/assignments/stage19/int_7.xsm
+load --int=9 /home/madhavpcm/myexpos/assignments/stage19/int_9.xsm
+load --os /home/madhavpcm/myexpos/assignments/stage19/osloader.xsm
+load --int=disk /home/madhavpcm/myexpos/assignments/stage19/disk.xsm
+load --int=console /home/madhavpcm/myexpos/assignments/stage19/console.xsm
+load --int=timer /home/madhavpcm/myexpos/assignments/stage19/timer.xsm
+load --exhandler /home/madhavpcm/myexpos/assignments/stage19/exhandler.xsm
+load --library /home/madhavpcm/myexpos/expl/library.lib
+load --exec /home/madhavpcm/myexpos/assignments/stage19/user/assg1.xsm
+load --idle /home/madhavpcm/myexpos/assignments/stage19/user/idle.xsm
+load --init /home/madhavpcm/myexpos/assignments/stage19/user/init.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage19/user/odd.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage19/user/sub.xsm
+dump --inodeusertable

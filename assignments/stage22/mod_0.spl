@@ -1,0 +1,132 @@
+// Resource Manager module
+alias funcNo R1;
+alias currPID R2;
+alias currEntry R5;
+alias iter R6;
+
+currEntry = PROCESS_TABLE + currPID*16;
+// ACQUIRE semaphore
+if( funcNo == ACQUIRE_SEMAPHORE) then
+  iter = 0;
+  alias sentry R7;
+  //Loop through semaphore table
+  while ( iter < MAX_SEM_COUNT) do
+    sentry = SEMAPHORE_TABLE + iter * 4; 
+    //if entry is empty take it
+    if([sentry] == -1) then
+      // no of process who acquired it 
+      [sentry + 1] = 1;
+      // no one is locking rn
+      [sentry] = -1;
+      R0 = iter;
+      return;
+    endif;
+    iter = iter+1;
+  endwhile;
+  //no free semaphores available
+  R0 = -1;
+  return;
+endif;
+
+// Release semaphore
+if( funcNo == RELEASE_SEMAPHORE) then
+  iter = 0;
+  alias semid R3;
+  alias sentry R7;
+  alias pentry R8;
+  sentry = SEMAPHORE_TABLE + semid*4; 
+
+  //if current process has locked this semid
+  if([sentry] == currPID) then
+    //release it
+    [sentry] = -1;
+    while(iter < 16)  do 
+      pentry = PROCESS_TABLE + iter*16;
+      if([pentry + 4] == WAIT_SEMAPHORE && [pentry + 5] == semid) then
+        //ready this boi as semaphore has been released
+        [pentry + 4] = READY;
+        //maybe sus
+        [pentry + 5] = -1;
+      endif;
+      iter= iter+1;
+    endwhile;
+  endif;
+
+  //decrement process cout
+  [sentry+1] = [sentry+1] -1;
+  return;
+
+endif;
+// Acquire terminal function
+if( funcNo == ACQUIRE_TERMINAL) then
+
+  // If terminal is occupied loop 
+  while([TERMINAL_STATUS_TABLE] == 1) do
+    // Set status to wait_terminal
+    [currEntry + 4] = WAIT_TERMINAL;
+    multipush(R0,R1,R2,R3,R5);
+    //Schedule something else until terminal is free
+    call SCHEDULER;
+    multipop(R0,R1,R2,R3,R5);
+  endwhile;
+
+  //Acquire the terminal
+  [TERMINAL_STATUS_TABLE] =1;
+  // Set which proc is using terminal
+  [TERMINAL_STATUS_TABLE + 1] = currPID;
+
+  R0 = 0;
+  return;
+
+endif;
+// Release terminal function
+if( funcNo == RELEASE_TERMINAL) then
+  // Only the process which acquired can release
+  if( [TERMINAL_STATUS_TABLE +1 ] != currPID) then
+    R0 = -1;
+    return;
+  else
+    //Release it
+    [TERMINAL_STATUS_TABLE] = 0;
+    iter=0;
+
+    //Loop through all processes
+    while(iter < 16) do 
+      currEntry = PROCESS_TABLE + iter*16;
+      if([currEntry + 4] == WAIT_TERMINAL) then
+        //Set all processes waiting for terminal to ready
+        [currEntry + 4] = READY;
+      endif;
+      iter=iter+1;
+    endwhile;
+
+    R0 = 0;
+    return;
+  endif;
+
+endif;
+//error
+
+//Acquire disk
+if (funcNo == ACQUIRE_DISK) then
+  
+  //If disk is busy schedule to something else
+  while( [DISK_STATUS_TABLE ] == 1) do 
+    //Set current disk status to wait_disk
+    [currEntry + 4] = WAIT_DISK;
+    multipush(R1,R2,R3,R4,R5);
+    call SCHEDULER;
+    multipop(R1,R2,R3,R4,R5);
+  endwhile;
+
+  //Acquire the disk
+  [DISK_STATUS_TABLE] = 1;
+  //Set which process is using disk now
+  [DISK_STATUS_TABLE + 4] = currPID;
+
+  return;
+    
+endif;
+//error
+R0=-1;
+return;

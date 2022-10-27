@@ -1,0 +1,40 @@
+//EXIT
+alias i R9;
+alias flag R10;
+alias offset R11 ;
+alias currPID R12 ;
+alias uptr R13;
+//Set some dying words 
+currPID = [SYSTEM_STATUS_TABLE+ 1];
+[PROCESS_TABLE + currPID * 16 + 9] = 10;
+[PROCESS_TABLE + currPID * 16 + 4] = TERMINATED;
+
+//Switch Stacks
+[PROCESS_TABLE + currPID*16 + 13] = SP;
+uptr = SP ; 
+SP = [PROCESS_TABLE + currPID*16 + 11]*512 - 1;
+
+//F to pay respects
+multipush(R12);
+
+R1 = EXIT_PROCESS;
+R2 = [SYSTEM_STATUS_TABLE+1];
+call PROCESS_MANAGER;
+
+multipop(R12);
+
+//Find another process to replace
+i=(currPID+1)%16;
+flag=0;
+
+while(i != currPID) do
+  if(i != 0 && [PROCESS_TABLE + i*16 + 4] != TERMINATED) then
+    multipush(R9);
+    call SCHEDULER;
+    multipop(R9);
+  endif;
+  i=(i+1)%16;
+  breakpoint;
+endwhile;
+
+halt;

@@ -87,22 +87,22 @@ SP = [PROCESS_TABLE + cpid * 16  + 11]*512 - 1;
 [PTBR + 7] = "0000";
 
 //get a free page for stack 2
-multipush(R0,R1,R2,R3,R5,R7,R8,R9);
+multipush(R1,R2,R3,R5,R7,R8,R9);
 R1= GET_FREE_PAGE;
 call MOD_2;
 //setup the new page in page table
+multipop(R1,R2,R3,R5,R7,R8,R9);
 [PTBR + 16] = R0;
 [PTBR + 17] = "0110";
-multipop(R0,R1,R2,R3,R5,R7,R8,R9);
 
 //get a free page for stack 2
-multipush(R0,R1,R2,R3,R5,R7,R8,R9);
+multipush(R1,R2,R3,R5,R7,R8,R9);
 R1= GET_FREE_PAGE;
 call MOD_2;
 //setup the new page in page table
+multipop(R1,R2,R3,R5,R7,R8,R9);
 [PTBR + 18] = R0;
 [PTBR + 19] = "0110";
-multipop(R0,R1,R2,R3,R5,R7,R8,R9);
 
 multipush(R1,R2,R3,R5,R7,R8,R9);
 
@@ -131,6 +131,7 @@ pprt = uap*512 + 512 - 16;
 pprtbound = uap*512 + 512;
 while( pprt < pprtbound ) do
   [pprt] = -1;
+  [pprt+1] = -1;
   pprt = pprt + 2;
 endwhile;
 

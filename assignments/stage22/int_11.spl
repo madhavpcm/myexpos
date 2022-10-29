@@ -34,7 +34,6 @@ if(syscall == INT_WAIT) then
   //once check if running only
   [centry + 4] = WAIT_PROCESS;
   [centry + 5] = tpid;
-  breakpoint;
   //Schedule something else
   multipush(R1,R2,R3,R4,R5);
   call SCHEDULER;

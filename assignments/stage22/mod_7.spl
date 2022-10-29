@@ -57,7 +57,7 @@ loadi(29,42);
 
 //INT=14; Semlock and Semunlock
 loadi(30,43);
-loadi(32,44);
+loadi(31,44);
 
 //INT=15; Shutdown
 loadi(32,45);

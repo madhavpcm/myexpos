@@ -14,46 +14,68 @@ SP = [centry + 11]*512 -1;
 
 //Extract Syscall
 syscall = [[PTBR + (uptr-5)*2/512]*512 + (uptr-5)%512];
-//sussy approach 
 if(syscall == INT_SEMGET) then
   //Mode flag
   [centry + 9] = INT_SEMGET;
-  alias rentry R6;  
+  alias rentry R5;
+  alias iter R6;  
   //get resource table from uap 
   rentry = [centry + 11]*512 + RESOURCE_TABLE_OFFSET;
-  //loop thru it and find free entries
-  while(rentry < [centry +11 ] * 512 + 512) do
-    //if free entry
-    if ([rentry] == -1)then
-      //call acquire terminal function
-      [rentry] = SEMAPHORE;
-      multipush(R1,R2,R3,R4,R6);
-      R2 = cpid;
-      R1 = ACQUIRE_SEMAPHORE;
-      call RESOURCE_MANAGER;
-      multipop(R1,R2,R3,R4,R6);
-      
-      if(R0 == -1) then
-        //No semaphore availabe
-        [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -2;
-      else
-        //Got semaphore index 
-        //Set this in the free entry
-        [rentry+1] = R0;
-        //setup return value
-        //maybe sus once check
-        [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = R0;
-      endif;
-      //work here is done :)
+  iter =0;
+  //iterate resource table
+  while(iter < 8) do 
+    //if resource entry free
+    if([rentry+2*iter] == -1)then
       break;
     endif;
-    //increment by 2
-    rentry=rentry + 2;
+    iter=iter+1;
   endwhile;
-  //Nofree page in resource table
-  [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -1;
+
+  //no free netry in resource table
+  if(iter == 8) then
+    //return value to -2
+    [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -1;
+    //reset mode
+    [centry + 9] = 0;
+    //switch stacks
+    SP = [centry + 13];
+    ireturn;
+  endif;
+  
+  //occupy this rentry with a semaphore
+  [rentry + iter*2] = SEMAPHORE;
+
+  [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = iter;
+  multipush(R1,R2,R3,R4,R5,R6);
+
+    R1=ACQUIRE_SEMAPHORE;
+    R2=[SYSTEM_STATUS_TABLE + 1];
+    call RESOURCE_MANAGER;
+
+  multipop(R1,R2,R3,R4,R5,R6);
+
+  //no free semaphores
+  if(R0 == -1) then
+    [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -2;
+    //reset mode
+    [centry + 9 ] = 0;
+    //switch stacks
+    SP = [centry + 13];
+    ireturn;
+  endif;
+
+  //return per process resource table index
+  [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = iter;
+  [rentry + iter*2 + 1] = R0;
+  //loop thru it and find free entries
+  [centry + 9] =0;
+  //Switch stacks
+  SP = [centry + 13];
+  breakpoint;
+  ireturn;
 endif;
 
+// semrelease syscall
 if(syscall == INT_SEMRELEASE) then
   //Mode
   [centry + 9] = INT_SEMRELEASE;
@@ -77,10 +99,10 @@ if(syscall == INT_SEMRELEASE) then
 
   //Call resource manager module
   multipush(R1,R2,R3,R4,R5,R6,R7);
-  R1=RELEASE_SEMAPHORE;
-  R2=[SYSTEM_STATUS_TABLE + 1];
-  R3=[rentry+2*semid+1];
-  call RESOURCE_MANAGER;
+    R1=RELEASE_SEMAPHORE;
+    R2=[SYSTEM_STATUS_TABLE + 1];
+    R3=[rentry+2*semid+1];
+    call RESOURCE_MANAGER;
   multipop(R1,R2,R3,R4,R5,R6,R7);
 
   [rentry + semid*2] = -1;

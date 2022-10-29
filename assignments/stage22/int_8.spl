@@ -21,7 +21,6 @@ alias childpid R10;
 childpid = R0;
 
 //If child pid is -1, that means process table is full currently.
-print childpid;
 if( childpid == -1)then
   [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -1;
   //Reset values and switch back to user mode
@@ -58,7 +57,6 @@ endif;
 alias childptbr R13;
 alias i R7;
 childptbr = PAGE_TABLE_BASE + 20 * childpid;
-print childptbr;
 i =0;
 //Only heap, code, library are shared
 while( i < 16) do
@@ -70,31 +68,30 @@ while( i < 16) do
   [R12] = [R12]+1;
   i=i+2;
 endwhile;
-//library 
-multipush(R1, R10, R13,R14);
-
 //Allocate Stack Pages
+multipush(R1, R10, R13,R14);
   R1= GET_FREE_PAGE;
   call MEMORY_MANAGER;
-  [childptbr + 16] = R0;
-  [childptbr + 17] = "0110";
-
 multipop(R1, R10, R13,R14);
+
+[childptbr + 16] = R0;
+[childptbr + 17] = "0110";
 
 multipush(R1, R10, R13,R14);
   R1= GET_FREE_PAGE;
   call MEMORY_MANAGER;
-  [childptbr + 18] = R0;
-  [childptbr + 19] = "0110";
 multipop(R1, R10, R13,R14);
+
+[childptbr + 18] = R0;
+[childptbr + 19] = "0110";
 
 //Allocate UAP
 multipush(R1, R10, R13,R14);
   R1 = GET_FREE_PAGE;
   call MEMORY_MANAGER;
-  [PROCESS_TABLE + childpid * 16 + 11 ] = R0;
-
 multipop(R1, R10, R13,R14);
+
+[PROCESS_TABLE + childpid * 16 + 11 ] = R0;
 
 alias centry R11;
 alias pentry R12;
@@ -134,7 +131,7 @@ while( cprt < bound) do
   //if([cprt] == FILE) then
   //    [OPEN_FILE_TABLE + [cprt]*4 + 1] = [OPEN_FILE_TABLE+ [cprt]*4 + 1] +1;
   //else
-  if([pprt] == SEMAPHORE) then
+  if([pprt] == SEMAPHORE && [pprt+1] != -1) then
     [SEMAPHORE_TABLE + [pprt+1]*4 + 1] = [SEMAPHORE_TABLE + [pprt+1]*4 + 1] +1;
   endif;
   //endif;

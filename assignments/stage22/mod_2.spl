@@ -42,15 +42,14 @@ if(funcno == RELEASE_PAGE) then
 
   if([MEMORY_FREE_LIST +pageno ] == 0) then
     [SYSTEM_STATUS_TABLE + 2]= [SYSTEM_STATUS_TABLE + 2]+1;
-    iter=0;
-    while(iter < MAX_PROC_NUM) do
-
+  endif;
+  iter=0;
+  while(iter < MAX_PROC_NUM) do
     if([PROCESS_TABLE + iter*16 + 4] == WAIT_MEM ) then
       [PROCESS_TABLE + iter*16 + 4] = READY;
     endif;
-    iter = iter + 1;
-    endwhile;
-  endif;
+  iter = iter + 1;
+  endwhile;
 
 
   R0=pageno;

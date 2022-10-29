@@ -34,7 +34,6 @@ while(i != currPID) do
     multipop(R9);
   endif;
   i=(i+1)%16;
-  breakpoint;
 endwhile;
 
 halt;

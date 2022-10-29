@@ -1,2 +1,4 @@
 print "poweroff";
+print "ContextSwitch:";
+print [SYSTEM_STATUS_TABLE +5];
 halt;

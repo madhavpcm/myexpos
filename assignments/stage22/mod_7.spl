@@ -195,6 +195,8 @@ endwhile;
 
 //wait_mem_count
 [SYSTEM_STATUS_TABLE + 3] =0;
+//stage 22 context count
+[SYSTEM_STATUS_TABLE + 5] =0;
 
 [TERMINAL_STATUS_TABLE] = 0;
 [DISK_STATUS_TABLE]=0;

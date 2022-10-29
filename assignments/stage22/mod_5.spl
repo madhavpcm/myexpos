@@ -5,6 +5,8 @@
 
 alias currPID R6;
 currPID = [SYSTEM_STATUS_TABLE + 1];
+//context switch counter
+[SYSTEM_STATUS_TABLE + 5] = [SYSTEM_STATUS_TABLE + 5] + 1;
 
 //push BP
 multipush(BP);

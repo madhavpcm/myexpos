@@ -1,0 +1,161 @@
+//Exec system call
+alias uptr R0;
+alias arg1 R1;
+alias iter R2;
+alias flag R3;
+alias cpid R7;
+alias finode R8;
+alias uap R9;
+alias ptbr R10;
+
+//Store SP to UPTR
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1] * 16 + 13] = SP;
+//Mode flag to show it is doing int_exec
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = INT_EXEC;
+uptr = SP;
+//Current process Id
+cpid = [SYSTEM_STATUS_TABLE + 1];
+
+//Set SP to UAP
+SP = [PROCESS_TABLE + cpid * 16 + 11]*512-1;
+
+//Address translate and get the executable name
+arg1 = [ [PTBR + (uptr-4)*2/512]*512 + (uptr-4)%512 ];
+
+flag = 0;
+iter=0 ;
+
+//loop inode table
+while( iter < MAX_FILE_NUM ) do
+  //Check all files with filename == exec name (arg1) 
+  if([INODE_TABLE + iter*16 + 1] == arg1 )then
+    flag = 1;
+  //If executable name is found break;
+    finode = iter;
+    break;
+  endif;
+  iter=iter+1;
+endwhile;
+
+//return if file isnt found
+if(flag == 0) then 
+  //replace sp back
+  SP = [PROCESS_TABLE + cpid * 16 + 13];
+  //reset mode
+  [PROCESS_TABLE + cpid * 16 + 9] = 0;
+  //Address translate return value
+  [ [ PTBR + (uptr-1) * 2/512]*512 + (uptr-1) % 512] = -1;
+  ireturn;
+endif;
+
+//exit syscall
+multipush(R0,R1,R2,R3,R7, R8);
+
+R1 = EXIT_PROCESS;
+R2 = cpid;
+// process manager
+call MOD_1;
+
+multipop(R0,R1,R2, R3,R7, R8);
+//get uap
+uap = [PROCESS_TABLE + cpid * 16 + 11];
+//reclaim UAP, as this was deallocated by EXIT_PROCESS
+[MEMORY_FREE_LIST + uap] =  [MEMORY_FREE_LIST+ uap] +1;
+
+//decrementing mem free count
+[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
+
+//Re initialize to base of kernel stack (UAP)
+SP = [PROCESS_TABLE + cpid * 16  + 11]*512 - 1;
+// set state to running
+[PROCESS_TABLE + cpid *16 + 4] = RUNNING;
+//Set disk
+[PROCESS_TABLE + cpid *16 + 7] = finode;
+
+//SETUP PAGE TABLE
+
+//library
+[PTBR + 0] = 63;
+[PTBR + 1] = "0100";
+[PTBR + 2] = 64;
+[PTBR + 3] = "0100";
+
+// NOT allocating HEAP , instead lazy load the first code page 
+[PTBR + 4] = -1;
+[PTBR + 5] = "0000";
+[PTBR + 6] = -1;
+[PTBR + 7] = "0000";
+
+//get a free page for stack 2
+multipush(R1,R2,R3,R5,R7,R8,R9);
+R1= GET_FREE_PAGE;
+call MOD_2;
+//setup the new page in page table
+multipop(R1,R2,R3,R5,R7,R8,R9);
+[PTBR + 16] = R0;
+[PTBR + 17] = "0110";
+
+//get a free page for stack 2
+multipush(R1,R2,R3,R5,R7,R8,R9);
+R1= GET_FREE_PAGE;
+call MOD_2;
+//setup the new page in page table
+multipop(R1,R2,R3,R5,R7,R8,R9);
+[PTBR + 18] = R0;
+[PTBR + 19] = "0110";
+
+multipush(R1,R2,R3,R5,R7,R8,R9);
+
+//sus code iter*16
+//Get code page instead of free page
+R1 = GET_CODE_PAGE;
+R2 = [INODE_TABLE + iter*16 + 8];
+call MOD_2;
+//Get the code page 
+[PTBR + 8] = R0;
+[PTBR + 9] = "0100";
+[PTBR + 10] = -1;
+[PTBR + 11] = "0000";
+[PTBR + 12] = -1;
+[PTBR + 13] = "0000";
+[PTBR + 14] = -1;
+[PTBR + 15] = "0000";
+
+multipop(R1,R2,R3,R5,R7,R8,R9);
+
+//Initialize per process resource table
+alias pprt R5;
+alias pprtbound R6; 
+
+pprt = uap*512 + 512 - 16;
+pprtbound = uap*512 + 512;
+while( pprt < pprtbound ) do
+  [pprt] = -1;
+  [pprt+1] = -1;
+  pprt = pprt + 2;
+endwhile;
+
+
+// LAZY LOAD Code block 1
+
+//stack
+
+alias dme R11;
+dme = DISK_MAP_TABLE + [SYSTEM_STATUS_TABLE + 1]*10;
+[dme + 0] = -1;//unused
+[dme + 1] = -1;//unused
+[dme + 2] = -1;//heap 1
+[dme + 3] = -1;//heap 2
+[dme + 4] = [INODE_TABLE + finode*16 + 8 ];//code 1
+[dme + 5] = [INODE_TABLE + finode*16 + 9 ];//code 2
+[dme + 6] = [INODE_TABLE + finode*16 + 10 ];//code 3
+[dme + 7] = [INODE_TABLE + finode*16 + 11 ];//code 4
+[dme + 8] = -1;//stack 1
+[dme + 9] = -1;//stack 2
+
+//set SP to starting of exec value
+[[PTBR+16]*512] = [[PTBR+8]*512 + 1];
+[PROCESS_TABLE + cpid * 16 + 9] = 0;
+SP = 8*512;
+ireturn;
+

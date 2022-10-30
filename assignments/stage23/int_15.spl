@@ -1,0 +1,44 @@
+alias cpid R1 ;
+alias uptr R2;
+cpid = [SYSTEM_STATUS_TABLE + 1];
+[PROCESS_TABLE + cpid* 16 + 13] = SP;
+uptr=SP;
+SP = [PROCESS_TABLE + cpid* 16 + 11]*512 - 1;
+[PROCESS_TABLE + cpid* 16 + 9] = INT_SHUTDOWN;
+
+if( cpid != 1) then
+  [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -1;
+  SP=uptr;
+  [PROCESS_TABLE + cpid*16 + 9] = 0;
+  ireturn;
+endif;
+
+//inode and user table
+print "Saving disk..";
+R1= DISK_STORE;
+R2= [SYSTEM_STATUS_TABLE+1];
+R3 = DISK_FREE_LIST / 512;
+R4 = 2;
+call DEVICE_MANAGER;
+
+R1= DISK_STORE;
+R2= [SYSTEM_STATUS_TABLE+1];
+R3 = INODE_TABLE / 512;
+R4 = 3;
+call DEVICE_MANAGER;
+R1= DISK_STORE;
+R2= [SYSTEM_STATUS_TABLE+1];
+R3 = INODE_TABLE / 512 + 1;
+R4 = 4;
+call DEVICE_MANAGER;
+
+R1= DISK_STORE;
+R2= [SYSTEM_STATUS_TABLE+1];
+R3 = ROOT_FILE / 512;
+R4 = 5;
+call DEVICE_MANAGER;
+
+print "Disk save";
+print "Completed";
+print "poweroff";
+halt;

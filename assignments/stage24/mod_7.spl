@@ -225,7 +225,7 @@ while(iter < MAX_FILE_NUM) do
   fentry = FILE_STATUS_TABLE + iter*4;
   [fentry] = -1;
   [fentry + 1] = -1;
-  [fentry + 2] = -1;
+//  [fentry + 2] = -1;
   iter=iter+1;
 endwhile;
 

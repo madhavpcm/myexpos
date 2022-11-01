@@ -5,10 +5,8 @@ int main(){
     int temp;
   enddecl
   begin
-    breakpoint;
     temp = exposcall("Write", -2 , "Filename") ;
     temp = exposcall("Read", -1, filename);
-    breakpoint;
     temp = exposcall("Write", -2 , "Enter perm") ;
     temp = exposcall("Read", -1, perm);
     temp = exposcall("Create", filename, perm);

@@ -10,6 +10,7 @@ backup;
 alias reqPID R5;
 reqPID = [TERMINAL_STATUS_TABLE + 1];
 [PROCESS_TABLE + reqPID * 16 + 8 ] = P0; 
+breakpoint;
 
 
 // release the terminal

@@ -129,11 +129,11 @@ while( cprt < bound) do
   [cprt] = [pprt];
   [cprt + 1] = [pprt + 1];
   //share files
-  if([pprt] == FILE && [pprt+1] !=-1) then
+  if([pprt] == FILE ) then
     [OPEN_FILE_TABLE + [pprt+1]*4 + 1] = [OPEN_FILE_TABLE+ [pprt+1]*4 + 1] +1;
   endif; 
     //share semaphores
-  if([pprt] == SEMAPHORE && [pprt+1] != -1) then
+  if([pprt] == SEMAPHORE ) then
     [SEMAPHORE_TABLE + [pprt+1]*4 + 1] = [SEMAPHORE_TABLE + [pprt+1]*4 + 1] +1;
   endif;
   //endif;

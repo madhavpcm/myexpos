@@ -109,8 +109,6 @@ if( syscall == INT_DELETE) then
     i=i+1;
   endwhile;
 
-  print "here";
-
   //file doesnt exist
   if(i == MAX_FILE_NUM) then
     print "NoFile";

@@ -191,8 +191,8 @@ endif;
 
 if ( funcNo == RELEASE_BUFFER) then
   //buff no
-  alias pid R2;
-  alias buff R3;
+  alias buff R2;
+  alias pid R3;
   //pid
   if(pid != [BUFFER_TABLE+buff*4 + 2])then
     R0=-1;

@@ -28,7 +28,6 @@ if(syscall == INT_CREATE) then
   alias ientry R8;
   alias rentry R9;
 
-breakpoint;
   i=0;
   //loop thru inode entries to check if this filename already exists
   while(i < MAX_FILE_NUM)  do
@@ -41,7 +40,6 @@ breakpoint;
     endif;
     i=i+1;
   endwhile;
-breakpoint;
   //find free entry
   i=0;
   while(i < MAX_FILE_NUM)  do
@@ -52,7 +50,6 @@ breakpoint;
     endif;
     i=i+1;
   endwhile;
-breakpoint;
   if(i == MAX_FILE_NUM) then
     //no free entry avaialbe
     [ret] = -1;
@@ -89,7 +86,6 @@ breakpoint;
   //set permssions
   [rentry + 4] = perm;
 
-  breakpoint;
   [ret] = 0;
   goto _return_;
 endif;
@@ -140,7 +136,6 @@ if( syscall == INT_DELETE) then
   endif;
 
   //acquire inode lock
-  breakpoint;
   multipush(R1,R2,R3,R5,R7,R8,R14);
     R1=ACQUIRE_INODE;
     R2=i;

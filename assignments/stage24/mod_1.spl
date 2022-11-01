@@ -71,14 +71,13 @@ endif;
 if (funcno == FREE_USER_AREA_PAGE) then
   // Get the UAP
   uap = [PROCESS_TABLE + cpid *16 + 11];
-  breakpoint;
 
   alias rentry R8;  
 
   iter=0;
   while(iter < 8) do
     rentry = uap*512 + RESOURCE_TABLE_OFFSET + iter*2;
-    if([rentry] == SEMAPHORE && [rentry+1]!=-1) then
+    if([rentry] == SEMAPHORE ) then
       //release this semaphore
       multipush(R1,R2,R4,R5,R7,R8);
         R1 = RELEASE_SEMAPHORE;
@@ -88,11 +87,10 @@ if (funcno == FREE_USER_AREA_PAGE) then
       multipop(R1,R2,R4,R5,R7,R8);
     endif;
 
-    if([rentry] == FILE && [rentry+1] !=-1) then
+    if([rentry] == FILE ) then
       multipush(R1,R2,R4,R5,R7,R8);
         R1 = CLOSE;
         R2 = [rentry+1];
-        breakpoint;
         call FILE_MANAGER;
       multipop(R1,R2,R4,R5,R7,R8);
     endif;

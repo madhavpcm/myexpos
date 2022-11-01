@@ -1,0 +1,5 @@
+rm create.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage23/user/create.xsm
+load --idle /home/madhavpcm/myexpos/assignments/stage23/user/idle.xsm
+load --init /home/madhavpcm/myexpos/assignments/stage23/user/init.xsm
+dump --inodeusertable

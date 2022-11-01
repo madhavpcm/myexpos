@@ -28,6 +28,7 @@ if(syscall == INT_CREATE) then
   alias ientry R8;
   alias rentry R9;
 
+breakpoint;
   i=0;
   //loop thru inode entries to check if this filename already exists
   while(i < MAX_FILE_NUM)  do
@@ -40,6 +41,7 @@ if(syscall == INT_CREATE) then
     endif;
     i=i+1;
   endwhile;
+breakpoint;
   //find free entry
   i=0;
   while(i < MAX_FILE_NUM)  do
@@ -50,6 +52,7 @@ if(syscall == INT_CREATE) then
     endif;
     i=i+1;
   endwhile;
+breakpoint;
   if(i == MAX_FILE_NUM) then
     //no free entry avaialbe
     [ret] = -1;

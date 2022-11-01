@@ -1,0 +1,198 @@
+//INT_8 Fork System Call
+alias parentpid R1;
+alias uptr R14;
+//Set mode to int 8
+R1 = [SYSTEM_STATUS_TABLE + 1];
+[PROCESS_TABLE + parentpid * 16 + 9 ] = INT_FORK;
+//Switch Kernel Stack
+[PROCESS_TABLE + parentpid * 16 + 13 ] = SP;
+uptr = SP;
+SP = [PROCESS_TABLE + parentpid * 16 + 11] * 512 - 1;
+
+//Get PCB Entry function
+multipush(R1);
+
+R1 = GET_PCB_ENTRY;
+call PROCESS_MANAGER;
+
+multipop(R1);
+//Get new PID from 
+alias childpid R10;
+childpid = R0;
+
+//If child pid is -1, that means process table is full currently.
+if( childpid == -1)then
+  [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -1;
+  //Reset values and switch back to user mode
+  [PROCESS_TABLE + parentpid * 16 + 9 ] = 0;
+  SP = uptr; 
+  //Try again when pcb has an entry
+  ireturn;
+endif;
+
+
+//If Heap pages are not allocated, allocate using get free page
+if( [PTBR + 4] == -1 ) then
+  //get free page
+  multipush(R1, R10, R14);
+
+  R1= GET_FREE_PAGE;
+  call MEMORY_MANAGER;
+
+  //set page table entry of parent process
+  [PTBR + 4] = R0;
+  [PTBR + 5] = "0110";
+  //share the same heap to child
+  R1= GET_FREE_PAGE;
+  call MEMORY_MANAGER;
+  //set page table entry of parent process
+  [PTBR + 6] = R0;
+  [PTBR + 7] = "0110";
+  //share the same heap to child
+
+  multipop(R1,R10,R14);
+
+endif;
+
+alias childptbr R13;
+alias i R7;
+childptbr = PAGE_TABLE_BASE + 20 * childpid;
+i =0;
+//Only heap, code, library are shared
+while( i < 16) do
+  //Copy same values for heap,code, library, stack from parents page table
+  [childptbr + i] = [PTBR +i];
+  [childptbr + i + 1] = [PTBR + i + 1];
+  //Increment shared pages
+  R12= MEMORY_FREE_LIST + [PTBR + i];
+  [R12] = [R12]+1;
+  i=i+2;
+endwhile;
+//Allocate Stack Pages
+multipush(R1, R10, R13,R14);
+  R1= GET_FREE_PAGE;
+  call MEMORY_MANAGER;
+multipop(R1, R10, R13,R14);
+
+[childptbr + 16] = R0;
+[childptbr + 17] = "0110";
+
+multipush(R1, R10, R13,R14);
+  R1= GET_FREE_PAGE;
+  call MEMORY_MANAGER;
+multipop(R1, R10, R13,R14);
+
+[childptbr + 18] = R0;
+[childptbr + 19] = "0110";
+
+//Allocate UAP
+multipush(R1, R10, R13,R14);
+  R1 = GET_FREE_PAGE;
+  call MEMORY_MANAGER;
+multipop(R1, R10, R13,R14);
+
+[PROCESS_TABLE + childpid * 16 + 11 ] = R0;
+
+alias centry R11;
+alias pentry R12;
+
+centry = PROCESS_TABLE + childpid * 16;
+pentry = PROCESS_TABLE + parentpid * 16;
+//Inheriting vars
+[centry + 3] = [pentry + 3]; // UID
+[centry + 4] = CREATED; // State
+[centry + 6] = [pentry + 6]; // swap flag
+[centry + 7] = [pentry + 7]; // INODE
+[centry + 10] =[pentry + 10]; // user area swap flag
+[centry + 13] =[pentry + 13]; // UPTR
+[centry] = 0; // Tick
+[centry + 9] = 0; // Mode
+[centry + 12] = 0; // Kptr
+[centry + 2] = parentpid; // PPID
+[centry + 1] = childpid; // PPID
+
+alias pprt R5;
+alias cprt R6;
+alias bound R7; 
+alias puap R8;
+alias cuap R9;
+
+//Copy per process Resource Table
+puap = [ pentry + 11] ;
+cuap = [ centry + 11] ;
+
+cprt = cuap*512 + RESOURCE_TABLE_OFFSET;
+pprt = puap*512 + RESOURCE_TABLE_OFFSET;
+bound = cprt + 16;
+while( cprt < bound) do
+  //copy every entry in resource table
+  [cprt] = [pprt];
+  [cprt + 1] = [pprt + 1];
+  //share files
+  if([pprt] == FILE && [pprt+1] !=-1) then
+    [OPEN_FILE_TABLE + [pprt+1]*4 + 1] = [OPEN_FILE_TABLE+ [pprt+1]*4 + 1] +1;
+  endif; 
+    //share semaphores
+  if([pprt] == SEMAPHORE && [pprt+1] != -1) then
+    [SEMAPHORE_TABLE + [pprt+1]*4 + 1] = [SEMAPHORE_TABLE + [pprt+1]*4 + 1] +1;
+  endif;
+  //endif;
+  pprt = pprt + 2;
+  cprt = cprt + 2;
+endwhile;
+//Copy per process Disk map table
+alias i R7;
+alias pdmap R5;
+alias cdmap R6;
+alias bound R8;
+
+pdmap = DISK_MAP_TABLE + [SYSTEM_STATUS_TABLE + 1]* 10;
+cdmap = DISK_MAP_TABLE + childpid * 10;
+bound = cdmap + 10;
+
+while(cdmap < bound)do
+  [cdmap ] = [pdmap ];
+  cdmap = cdmap + 1;
+  pdmap = pdmap + 1;
+endwhile;
+
+//Page Table Setup
+
+//Copy the stack word by word (page 1)
+alias pstack R5;
+alias cstack R6;
+
+pstack = [PTBR+16]*512;
+cstack = [childptbr +16]*512;
+bound = cstack + 512;
+while( cstack < bound )do 
+  [cstack]=[pstack];
+  cstack=cstack+1;
+  pstack=pstack+1;
+endwhile;
+
+//Copy the stack word by word (page 2)
+
+pstack = [PTBR+18]*512;
+cstack = [childptbr +18]*512;
+bound = cstack + 512;
+while( cstack < bound )do 
+  [cstack]=[pstack];
+  cstack=cstack+1;
+  pstack=pstack+1;
+endwhile;
+
+//Store value in BP register top of the kernel stack of child process. 
+//Gonna be useful for Scheduler
+cuap = [ centry + 11] ;
+[cuap*512]=BP;
+
+//Set return value of child process to 0
+[[childptbr + (uptr-1)*2/512]*512 + (uptr-1)%512] = 0;
+//Set return value of parent process to childpid
+[[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = childpid; 
+
+//Reset Mode flag
+[pentry + 9]=0;
+SP=uptr;
+ireturn;

@@ -238,6 +238,15 @@ while(iter < MAX_OPENFILE_NUM) do
   iter=iter+1;
 endwhile;
 
+iter=0;
+alias resentry R1;
+while(iter < 8) do
+  resentry = + 80*512 + RESOURCE_TABLE_OFFSET + iter*2;
+  [resentry] = -1;
+  [resentry + 1] = -1;
+  iter=iter+1;
+endwhile;
+
 //wait_mem_count
 [SYSTEM_STATUS_TABLE + 3] =0;
 

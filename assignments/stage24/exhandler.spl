@@ -1,7 +1,6 @@
 // Ex Handler
 //show process is in exhandler
 alias uptr R5;
-uptr = SP;
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = -1;
 // switch kernel stacks
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 13] = SP; 
@@ -16,6 +15,7 @@ multipush(EIP);
 //- EC: Exception Cause
 //- - Pagefault, Illegal Instruction, Illegal memory ,Arithmetic
 //- EMA: for illegal memory access
+uptr = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 13];
 if( EC != 0) then
   breakpoint;
   if( EC == 1) then

@@ -20,7 +20,6 @@ if( syscall == INT_SEMLOCK) then
   //mode
   [centry+ 9] = INT_SEMLOCK;
 
-  breakpoint;
   alias semid R6;
   alias sentry R7;
   alias rentry R8;  
@@ -54,7 +53,6 @@ if( syscall == INT_SEMLOCK) then
     multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9);
     call SCHEDULER;
     multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9);
-    breakpoint; 
   endwhile;
 
   //lock it
@@ -63,14 +61,12 @@ if( syscall == INT_SEMLOCK) then
   [centry + 9] =0;
   //Switch stacks
   SP = [centry + 13];
-  breakpoint;
   ireturn;
 
 endif;
 
 if( syscall == INT_SEMUNLOCK) then
   //mode
-  breakpoint;
   [centry+ 9] = INT_SEMUNLOCK;
   alias semid R6;
   alias sentry R7;
@@ -90,18 +86,15 @@ if( syscall == INT_SEMUNLOCK) then
     [centry + 9] =0;
     //Switch stacks
     SP = uptr;
-    breakpoint;
     ireturn;
   endif;
 
-  breakpoint;
   alias semx R11;
   semx =[rentry + 2*semid + 1];
   sentry = SEMAPHORE_TABLE + semx*4;
 
 //if semaphore is locked
   if([sentry] != -1) then
-  breakpoint;
     if([sentry] != [SYSTEM_STATUS_TABLE+1]) then
       //return -2;
       [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -2;
@@ -113,7 +106,6 @@ if( syscall == INT_SEMUNLOCK) then
     endif;
 
     //unlock it
-  breakpoint;
     [sentry] = -1;
     iter=0;
     //loop thru all bois
@@ -127,7 +119,6 @@ if( syscall == INT_SEMUNLOCK) then
         [pentry+5]= -1;
       endif;
       iter=iter+1;
-  breakpoint;
     endwhile;
   endif;
 
@@ -136,7 +127,6 @@ if( syscall == INT_SEMUNLOCK) then
   [centry + 9] =0;
   //Switch stacks
   SP = [centry + 13];
-  breakpoint;
   ireturn;
 endif;
 

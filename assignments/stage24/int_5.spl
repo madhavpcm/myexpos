@@ -65,6 +65,7 @@ if(syscall == INT_CLOSE) then
   rentry=[centry + 11]*512 + RESOURCE_TABLE_OFFSET;
 
 //filedesc/ resource table index is not valid
+  breakpoint;
   if(filedesc < 0 || filedesc > 7 || [rentry + 2*filedesc] != FILE) then
     [ret] = -1;
     goto _return_;

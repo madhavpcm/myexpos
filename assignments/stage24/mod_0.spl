@@ -135,7 +135,7 @@ if (funcNo == ACQUIRE_INODE) then
   endwhile;
 
   //return -1 if the file was deleted before acquirng
-  if([INODE_TABLE + inode*16 ] == -1)then
+  if([INODE_TABLE + inode*16 +1 ] == -1)then
     R0=-1;
     return;
   endif;
@@ -187,7 +187,6 @@ if ( funcNo == ACQUIRE_BUFFER) then
   endwhile;
 
   [BUFFER_TABLE+buffno*4+2] = pid;
-  R0=0;
   return;
 endif;
 

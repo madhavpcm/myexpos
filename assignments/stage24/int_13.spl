@@ -71,7 +71,6 @@ if(syscall == INT_SEMGET) then
   [centry + 9] =0;
   //Switch stacks
   SP = [centry + 13];
-  breakpoint;
   ireturn;
 endif;
 

@@ -76,7 +76,7 @@ if(filedesc != -1) then
         call RESOURCE_MANAGER;
       multipop(R1,R2,R3,R4);
   //return -2
-  ret=[PTBR + (uptr-1)*2/ 512]*512 + (uptr-1)%512;
+      ret=[PTBR + (uptr-1)*2/ 512]*512 + (uptr-1)%512;
       [ret] = -2;
       goto _return_;
     endif;
@@ -93,8 +93,7 @@ if(filedesc != -1) then
         R2= i;
         call RESOURCE_MANAGER;
       multipop(R1,R2,R3,R4);
-  ret=[PTBR + (uptr-1)*2/ 512]*512 + (uptr-1)%512;
-      breakpoint;
+    ret=[PTBR + (uptr-1)*2/ 512]*512 + (uptr-1)%512;
   //return -2
       [ret] = -2;
       goto _return_;

@@ -47,7 +47,7 @@ if(funcno == OPEN) then
 
   alias j R4;
   j=0;
-  while(j < MAX_FILE_NUM) do
+  while(j < MAX_OPENFILE_NUM) do
     //free entry in open file table
     if([OPEN_FILE_TABLE + j*4] == -1) then
       break;
@@ -56,7 +56,7 @@ if(funcno == OPEN) then
   endwhile;
 
 //no free entries;
-  if(j == MAX_FILE_NUM) then
+  if(j == MAX_OPENFILE_NUM) then
     multipush(R1,R2,R3,R4);
       R1= RELEASE_INODE;
       R2=i;
@@ -121,7 +121,7 @@ if(funcno == CLOSE) then
     //if file index aint root file index
     if(i != INODE_ROOT) then
       //decrement the open file count
-      R5 =[FILE_STATUS_TABLE + i*4 + 1];
+      R5 =FILE_STATUS_TABLE + i*4 + 1;
       [R5] = [R5]-1;
 
       if([R5] == 0) then
@@ -146,7 +146,6 @@ if(funcno == BUFFERED_READ) then
   //scheme decision btw
   buff=blockno %4;
 
-
   //acquire buffer lock
   multipush(R2,R3,R4,R5);
     R1= ACQUIRE_BUFFER;  
@@ -157,7 +156,7 @@ if(funcno == BUFFERED_READ) then
 
   bentry = BUFFER_TABLE + buff*4;
   //buffer occupied
-  if([bentry] != -1) then
+  if([bentry] != blockno) then
     //if dirty then write back
     if([bentry+1] != 0) then
       //send dirty back home
@@ -183,11 +182,15 @@ if(funcno == BUFFERED_READ) then
     [bentry] = blockno;
   endif;
 
+  [memory] = [BUFFER + buff*512 + offset]; 
+
   multipush(R2,R3,R4,R5);
     R1= RELEASE_BUFFER;  
     R2= buff;
     R3 = [SYSTEM_STATUS_TABLE+1];
     call RESOURCE_MANAGER;
   multipop(R2,R3,R4,R5);
+
   
+  return;
 endif;

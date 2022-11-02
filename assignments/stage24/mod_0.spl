@@ -135,7 +135,7 @@ if (funcNo == ACQUIRE_INODE) then
   endwhile;
 
   //return -1 if the file was deleted before acquirng
-  if([INODE_TABLE + inode*16 + 1] == -1)then
+  if([INODE_TABLE + inode*16 ] == -1)then
     R0=-1;
     return;
   endif;
@@ -156,7 +156,8 @@ if( funcNo == RELEASE_INODE) then
   endif;
 
   alias i R4;
-
+  
+  [FILE_STATUS_TABLE + inode*4] = -1;
   i=0;
   while(i < 16) do
     if([PROCESS_TABLE + i*16 +4] == WAIT_FILE && [PROCESS_TABLE + i*16 +5] == inode )then
@@ -176,6 +177,7 @@ if ( funcNo == ACQUIRE_BUFFER) then
   alias pid R3;
 
   while([BUFFER_TABLE+buffno*4 + 2] != -1) do
+    breakpoint;
     [PROCESS_TABLE + pid * 16 + 4] = WAIT_BUFFER;
     [PROCESS_TABLE + pid * 16 + 5] = buffno;
 
@@ -184,7 +186,7 @@ if ( funcNo == ACQUIRE_BUFFER) then
     multipop(R2,R3);
   endwhile;
 
-  [BUFFER_TABLE+2] = pid;
+  [BUFFER_TABLE+buffno*4+2] = pid;
   R0=0;
   return;
 endif;

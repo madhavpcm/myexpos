@@ -231,7 +231,7 @@ endwhile;
 
 iter=0;
 alias ofentry R1;
-while(iter < MAX_FILE_NUM) do
+while(iter < MAX_OPENFILE_NUM) do
   ofentry = OPEN_FILE_TABLE+ iter*4;
   [ofentry] = -1;
   [ofentry + 1] = 0;

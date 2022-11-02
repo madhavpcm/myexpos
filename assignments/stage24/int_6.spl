@@ -50,6 +50,7 @@ if(filedesc != -1) then
     R2= i;
     call RESOURCE_MANAGER;
   multipop(R1,R2,R3,R4,R5,R6,R7,R8);
+  ret=[PTBR + (uptr-1)*2/ 512]*512 + (uptr-1)%512;
 
 //file got deleted
   if(R0==-1)then
@@ -70,11 +71,12 @@ if(filedesc != -1) then
     if([lseek] == 480) then
       multipush(R1,R2,R3,R4);
         R1= RELEASE_INODE;
-        R3= cpid;
+        R3= [SYSTEM_STATUS_TABLE+1];
         R2= i;
         call RESOURCE_MANAGER;
       multipop(R1,R2,R3,R4);
   //return -2
+  ret=[PTBR + (uptr-1)*2/ 512]*512 + (uptr-1)%512;
       [ret] = -2;
       goto _return_;
     endif;
@@ -82,7 +84,6 @@ if(filedesc != -1) then
     //read the word at lseek
     [word] = [ROOT_FILE +[lseek]];
     //increment lseek
-    [lseek] = [lseek] +1;
   else
     //again, end of file
     if([lseek] == [INODE_TABLE + i*16 + 2]) then
@@ -92,6 +93,8 @@ if(filedesc != -1) then
         R2= i;
         call RESOURCE_MANAGER;
       multipop(R1,R2,R3,R4);
+  ret=[PTBR + (uptr-1)*2/ 512]*512 + (uptr-1)%512;
+      breakpoint;
   //return -2
       [ret] = -2;
       goto _return_;
@@ -111,9 +114,9 @@ if(filedesc != -1) then
     multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
 
     //increment lseek
+  endif;
     [lseek] = [lseek] + 1;
     [ret] =0;
-  endif;
 
 // release the lock
   multipush(R1,R2,R3,R4);
@@ -143,7 +146,6 @@ else
     multipop(R0,R1,R2,R3,R4);
 
     alias retaddr R6;
-    breakpoint;
     retaddr = ([PTBR + (uptr-1)*2/ 512])*512 + (uptr-1)%512;
     [retaddr] = 0;
 endif;

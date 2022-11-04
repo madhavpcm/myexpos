@@ -1,0 +1,144 @@
+//Write Operation
+//storing this so that os can show that this interrupt is not available 
+alias filedesc R1;
+alias cpid R2;
+alias centry R3;
+alias uptr  R4;
+cpid = [SYSTEM_STATUS_TABLE+1];
+centry = PROCESS_TABLE + cpid* 16;
+[centry + 9] = INT_WRITE;
+uptr= SP;
+//saving UPTR
+[centry + 13] = SP;
+//setting stack to kernel stack
+SP=[centry+ 11]*512 - 1;
+//backing up context
+
+PTBR = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE +1]*16 + 14];
+filedesc = [([PTBR + 2*((uptr-4)/512)])*512 + (uptr-4)%512];
+
+if(filedesc != -2) then
+  alias rentry R5  ;
+  alias ret R6;
+  alias ofti R7;
+  alias i R8;
+  alias lseek R9;
+  alias word R10;
+  rentry = [centry + 11]*512 + RESOURCE_TABLE_OFFSET;
+  ret = [PTBR + (uptr-1)*2/512]*512 + (uptr-1) % 512;
+  // if file desc invalid
+  if(filedesc < 0 || filedesc > 7 || [rentry + 2*filedesc] != FILE) then
+    [ret] = -1;
+    goto _return_;
+  endif;
+
+//open file table index
+  ofti = [rentry + 2*filedesc+ 1];
+//inode index
+  i = [OPEN_FILE_TABLE + ofti*4];
+
+  //permission / ownership issue
+  //slightly sus
+  if([centry+3] != ROOT && [centry + 3] != [INODE_TABLE + i*16 +3] && [INODE_TABLE + i*16 +5] == EXCLUSIVE ) then
+    [ret] = -3;
+    goto _return_;
+  endif;
+
+  multipush( R1, R2, R3, R4, R5, R6, R7, R8);
+    R1=ACQUIRE_INODE;
+    R2=i;
+    call RESOURCE_MANAGER;
+  multipop( R1, R2, R3, R4, R5, R6, R7, R8);
+
+  //file got deleted or something idk
+  if(R0 == -1) then
+    [ret] = -1;
+    goto _return_;
+  endif;
+
+  lseek = OPEN_FILE_TABLE + ofti*4 + 2;
+
+  word = [([PTBR + (uptr-3)*2/512])*512 + (uptr-3)%512];
+  //max file size
+  if([lseek] == MAX_FILE_SIZE) then
+      multipush(R1,R2,R3,R4);
+        R1= RELEASE_INODE;
+        R3= cpid;
+        R2= i;
+        call RESOURCE_MANAGER;
+      multipop(R1,R2,R3,R4);
+      [ret] = -2;
+      goto _return_;
+  endif;
+
+  if([lseek] % 512 == 0 && [lseek] == [INODE_TABLE + i*16 + 2]) then
+    /// get a new block
+    multipush( R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
+      R1=GET_FREE_BLOCK;
+      call RESOURCE_MANAGER;
+    multipop( R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
+
+    //no free disk space left
+    if(R0 == -1) then
+      [ret] = -2;
+      goto _return_;
+    endif;
+
+    //set new block
+    [INODE_TABLE + i * 16 + 8 + [lseek]/512] = R0;
+  endif;
+
+  multipush( R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
+    R1=BUFFERED_WRITE;
+    R2= [INODE_TABLE + i*16 + 8 + [lseek]/512];
+    R3= [lseek] % 512;
+    R4= word;
+    call FILE_MANAGER;
+  multipop( R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
+  
+  //increment global ds that hold filesize
+  if([lseek] == [INODE_TABLE + i*16 + 2])then
+    [INODE_TABLE + i*16 +2 ] = [INODE_TABLE + i*16 +2] + 1;
+    [ROOT_FILE + i*8 +2 ] = [ROOT_FILE+ i*8 +2] + 1;
+  endif;
+//increment lseek
+  [lseek] = [lseek] + 1;
+
+  multipush(R1,R2,R3,R4);
+    R1= RELEASE_INODE;
+    R3= cpid;
+    R2= i;
+    call RESOURCE_MANAGER;
+  multipop(R1,R2,R3,R4);
+
+  [ret] = 0;
+  goto _return_;
+
+    //return value
+    //error
+else
+    alias word R5;
+    word = [([PTBR + (uptr-3)*2/512])*512 + (uptr-3)%512];
+    multipush(R1,R2,R3,R5);
+
+    //terminal write function call
+    R1 = TERMINAL_WRITE;  
+    R2 = [SYSTEM_STATUS_TABLE+1];
+    R3 = word;
+    call MOD_4;
+
+    multipop(R1,R2,R3,R5);
+
+    
+    alias retaddr R6;
+    retaddr = ([PTBR + (uptr-1)*2/ 512])*512 + (uptr-1)%512;
+    [retaddr] = 0;
+endif;
+
+//restoring context
+//setting mode bit to 0 for user mode
+_return_:
+[centry+ 9] = 0;
+//saving uptr back toSP
+SP=[centry+ 13];
+ireturn;

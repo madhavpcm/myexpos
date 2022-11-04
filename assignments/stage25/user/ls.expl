@@ -1,0 +1,29 @@
+int main(){
+  decl  
+    int perm;
+    str filename;
+    str word;
+    int temp;
+    int a;
+    int b;
+    int filedesc;
+    int filesize;
+  enddecl
+  begin
+    temp = exposcall("Write", -2, "ls >");
+    filedesc = exposcall("Open", "root");
+    a= exposcall("Read", filedesc,  word);
+    while ( a!= -2 ) do
+      a= exposcall("Read", filedesc,  filesize);
+      if(filesize != 0) then
+        temp = exposcall("Write", -2, word);
+      endif;
+      temp = exposcall("Seek", filedesc, 3);
+      a= exposcall("Read", filedesc, word);
+    endwhile;
+    temp = exposcall("Write", -2, "ls >done.");
+    temp = exposcall("Close", filedesc);
+    return 0;
+  end 
+}
+

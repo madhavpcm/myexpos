@@ -1,0 +1,68 @@
+int main(){
+  decl  
+    int perm;
+    str filename;
+    str src;
+    str dest;
+    int srcdesc;
+    int destdesc;
+    str word;
+    int temp;
+    int a;
+    int b;
+    int filedesc;
+
+  enddecl
+  begin
+    temp = exposcall("Write", -2 , "cp >src:") ;
+    temp = exposcall("Read", -1, src);
+    temp = exposcall("Write", -2 , "cp >dest:") ;
+    temp = exposcall("Read", -1, dest);
+
+    srcdesc = exposcall("Open", src);
+
+    if(srcdesc == 0) then
+      temp = exposcall("Delete", dest);
+      if(temp == 0) then
+        temp = exposcall("Create", dest,0);
+        if(temp != -1) then
+          a= exposcall("Read", srcdesc,  word);
+          destdesc = exposcall("Open", dest);
+          while ( a!= -2) do
+            b= exposcall("Write", destdesc , word);
+            a= exposcall("Read", srcdesc, word);
+          endwhile;
+          temp = exposcall("Close", destdesc);
+          temp = exposcall("Write", -2 , "cp >done.") ;
+        else
+          temp = exposcall("Write", -2, "cp >disk.full");
+        endif;
+      else
+        if(temp == -1) then
+          temp = exposcall("Write", -2, "cp >denied.");
+        else
+          if(temp == -2) then
+            temp = exposcall("Write", -2, "cp >open.");
+          endif;
+        endif;
+      endif;
+      temp = exposcall("Close", srcdesc);
+    else
+      if(srcdesc == -1) then
+        temp = exposcall("Write", -2, "cp >src.err");
+      else
+        if(srcdesc == -2) then
+          temp = exposcall("Write", -2, "cp >file.max");
+        else
+          if(srcdesc == -3) then
+            temp = exposcall("Write",-2, "cp >proc.max");
+          endif;
+        endif;
+      endif;
+    endif;
+    
+
+    return 0;
+  end 
+}
+

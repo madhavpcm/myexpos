@@ -3,6 +3,9 @@
 loadi(2,15);
 loadi(3,16);
 
+//disk free lsit
+loadi(61,2);
+
 //Root file
 loadi(62,5);
 
@@ -195,7 +198,6 @@ while(iter < 128) do
   [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2]+1;
   iter=iter+1;
 endwhile;
-breakpoint;
 //Initalize semaphore table
 iter=0;
 alias sentry R1;
@@ -241,7 +243,7 @@ endwhile;
 iter=0;
 alias resentry R1;
 while(iter < 8) do
-  resentry = + 80*512 + RESOURCE_TABLE_OFFSET + iter*2;
+  resentry =  80*512 + RESOURCE_TABLE_OFFSET + iter*2;
   [resentry] = -1;
   [resentry + 1] = -1;
   iter=iter+1;
@@ -252,5 +254,6 @@ endwhile;
 
 [TERMINAL_STATUS_TABLE] = 0;
 [DISK_STATUS_TABLE]=0;
+breakpoint;
 return;
 

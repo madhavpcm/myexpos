@@ -1,6 +1,5 @@
 alias iter R2;
 alias uptr R4;
-breakpoint;
 //save uptr
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+ 1] * 16 + 13] = SP;
 

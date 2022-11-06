@@ -12,7 +12,7 @@ int main(){
     temp = exposcall("Read", -1, filename);
     filedesc= exposcall("Open", filename);
 
-    if(filedesc == 0) then
+    if(filedesc >= 0) then
           a= exposcall("Read", filedesc,  word);
           while ( a!= -2) do
             temp = exposcall("Write", -2, word);

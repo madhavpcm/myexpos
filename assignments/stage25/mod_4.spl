@@ -81,7 +81,7 @@ if ( funcNo == DISK_LOAD) then
   //Set block associated with disk op
   [DISK_STATUS_TABLE + 3] = blockno;
 
-  //blocking load 
+  //non blocking load 
   load(pageno, blockno);
 
   //Set current state of process to WAITDISK
@@ -106,14 +106,14 @@ if( funcNo == DISK_STORE) then
   R1 = ACQUIRE_DISK;
   call RESOURCE_MANAGER;
   multipop(R1,R2,R3,R4);
-  print "Acquired";
 
-  store(pageno, blockno);
   //set disk status params
   //load store bit
   [DISK_STATUS_TABLE + 1] = 1;
   [DISK_STATUS_TABLE + 2] = pageno;
   [DISK_STATUS_TABLE + 3] = blockno;
+
+  store(pageno, blockno);
 
   [PROCESS_TABLE + currpid * 16 + 4]=WAIT_DISK;
   multipush(R1,R2,R3,R4);
@@ -121,7 +121,6 @@ if( funcNo == DISK_STORE) then
   call SCHEDULER;
 
   multipop(R1,R2,R3,R4);
-  print "Saved";
   return;
 endif;
 R0=-1;

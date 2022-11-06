@@ -36,11 +36,13 @@ bi= 0;
 while(bi < MAX_BUFFER) do
   //buffer table is dirty
   if([BUFFER_TABLE + bi*4 + 1] == 1) then
-    R2 = cpid;
-    R1= DISK_STORE;
-    R4 = [BUFFER_TABLE + bi*4];
-    R3 = BUFFER_BASE+bi;
-    call DEVICE_MANAGER;
+    multipush(R1,R2,R5);
+      R2 = cpid;
+      R1= DISK_STORE;
+      R4 = [BUFFER_TABLE + bi*4];
+      R3 = BUFFER_BASE+bi;
+      call DEVICE_MANAGER;
+    multipop(R1,R2,R5);
   endif;
   bi=bi+1;
 endwhile;

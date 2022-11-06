@@ -18,7 +18,7 @@ int main(){
       if(filesize != 0) then
         temp = exposcall("Write", -2, word);
       endif;
-      temp = exposcall("Seek", filedesc, 3);
+      temp = exposcall("Seek", filedesc, 6);
       a= exposcall("Read", filedesc, word);
     endwhile;
     temp = exposcall("Write", -2, "ls >done.");

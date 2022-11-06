@@ -48,6 +48,7 @@ if(funcno == GET_FREE_BLOCK) then
       R0 = iter;
       return;
     endif;
+    iter = iter+1;
   endwhile;
   //disk full error
   R0 = -1;

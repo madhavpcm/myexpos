@@ -1,0 +1,29 @@
+int main()
+{
+	decl
+		int temp, fileSource, fileDest, readRet;
+		str source, destination, readv;
+	enddecl
+	begin
+		temp = exposcall("Write", -2, "Enter source");
+		temp = exposcall("Read", -1, source);
+		temp = exposcall("Write", -2, "Enter destination");
+		temp = exposcall("Read", -1, destination);
+
+		fileSource = exposcall("Open", source);
+		fileDest = exposcall("Open", destination);
+
+		if(fileSource >= 0 AND fileDest >= 0) then
+			readRet = exposcall("Read", fileSource, readv);
+			while(readRet != -2) do
+				temp = exposcall("Write", fileDest, readv);
+				readRet = exposcall("Read", fileSource, readv);
+			endwhile;
+			temp = exposcall("Write", -2, "Copied!");
+		else
+			temp = exposcall("Write", -2, "Invalid file!");
+		endif;
+
+		return 0;
+	end
+}

@@ -1,5 +1,6 @@
 int main(){
   decl  
+    int i;
     int perm;
     str filename;
     str src;
@@ -19,41 +20,72 @@ int main(){
     temp = exposcall("Write", -2 , "cp >dest:") ;
     temp = exposcall("Read", -1, dest);
 
+    i=0;
     srcdesc = exposcall("Open", src);
-
-    if(srcdesc == 0) then
+      //src is opened successfully
+    if(srcdesc >= 0) then
+      //remove contents of destination
       temp = exposcall("Delete", dest);
+      //deleted contents of destination without issues(permission)
       if(temp == 0) then
+        //create a file with same name as destination
         temp = exposcall("Create", dest,0);
-        if(temp != -1) then
-          a= exposcall("Read", srcdesc,  word);
+        //filesuccessfully created
+        if(temp == 0) then
+          //start copying
           destdesc = exposcall("Open", dest);
-          while ( a!= -2) do
-            b= exposcall("Write", destdesc , word);
-            a= exposcall("Read", srcdesc, word);
-          endwhile;
-          temp = exposcall("Close", destdesc);
-          temp = exposcall("Write", -2 , "cp >done.") ;
+          //successfully opened destination
+          if(destdesc >= 0) then
+            a= exposcall("Read", srcdesc,  word);
+            while ( a!= -2) do
+              //word by word till EOF of src
+              b= exposcall("Write", -2, i);
+              i=i+1;
+              b= exposcall("Write", destdesc , word);
+              a= exposcall("Read", srcdesc, word);
+            endwhile;
+            //close destination file
+            temp = exposcall("Close", destdesc);
+            //message success
+            temp = exposcall("Write", -2 , "cp >done.") ;
+          else
+            //maximum no of open files reached
+            if(srcdesc == -2) then
+              temp = exposcall("Write", -2, "cp >file.max");
+            else
+              //maximum no of resources reached by process
+              if(srcdesc == -3) then
+                temp = exposcall("Write",-2, "cp >proc.max");
+              endif;
+            endif;
+          endif;
         else
+          //no space to create a new file
           temp = exposcall("Write", -2, "cp >disk.full");
         endif;
       else
+        //permission issue
         if(temp == -1) then
           temp = exposcall("Write", -2, "cp >denied.");
         else
+          //this file is open somewhere
           if(temp == -2) then
             temp = exposcall("Write", -2, "cp >open.");
           endif;
         endif;
       endif;
+      //close the src file
       temp = exposcall("Close", srcdesc);
     else
+      //src file  invalid
       if(srcdesc == -1) then
         temp = exposcall("Write", -2, "cp >src.err");
       else
+        //maximum no of open files reached
         if(srcdesc == -2) then
           temp = exposcall("Write", -2, "cp >file.max");
         else
+          //maximum no of resources reached by process
           if(srcdesc == -3) then
             temp = exposcall("Write",-2, "cp >proc.max");
           endif;

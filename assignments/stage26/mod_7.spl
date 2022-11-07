@@ -203,7 +203,6 @@ PTLR=10;
 
 alias shell_process_table R6;
 inline "ADD R6,16";
-breakpoint;
 [shell_process_table ] = 0;
 [shell_process_table + 1] = 2;
 [shell_process_table + 3] = 1;

@@ -176,12 +176,12 @@ if(syscall == INT_GETUNAME) then
   ui= [[PTBR + (uptr-4)*2/512]*512 + (uptr-4)%512];
 
   if( ui < 0 || ui > 15) then
-    [ret] = -1;
+    [ret] = "-1";
     goto _return_;
   endif;
 
   if([USER_TABLE + ui*2] == -1) then
-    [ret] = -1;
+    [ret] = "-1";
     goto _return_;
   endif;
 

@@ -46,7 +46,6 @@ endif;
   scode = [PAGE_TABLE_BASE + SHELL_PROCESS * 20 + 8];
 
   [PROCESS_TABLE + SHELL_PROCESS *16 + 13] = 8*512;
-  breakpoint;
 
   //reset stack pointer to beginning
   [sstack * 512] = [scode * 512 + 1];

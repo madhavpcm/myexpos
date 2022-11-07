@@ -1,0 +1,82 @@
+//Process Synchronization wrapper
+alias cpid R1;
+alias centry R2;
+alias uptr R3;
+alias syscall R4;
+alias tpid R5;
+
+cpid=[SYSTEM_STATUS_TABLE + 1];
+centry = PROCESS_TABLE + cpid*16;
+
+//Switch Stacks
+[centry + 13] = SP;
+uptr = SP;
+SP = [centry + 11]*512 -1;
+
+//Extract Syscall
+syscall = [[PTBR + (uptr-5)*2/512]*512 + (uptr-5)%512];
+
+//wait syscall
+if(syscall == INT_WAIT) then
+  [centry + 9] = INT_WAIT;
+  //Extract pid which is argument 1
+  tpid = [[PTBR + (uptr-4)*2/512]*512 + (uptr-4)%512];
+
+  if(tpid == cpid || [PROCESS_TABLE + tpid*16 + 4] == TERMINATED || tpid < 0 || tpid > 15) then
+    //Set return value to -1
+    [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -1;
+    //Reset mode
+    [centry + 9] =0;
+    //Switch stacks
+    SP = [centry + 13];
+    ireturn;
+  endif;
+  //once check if running only
+  [centry + 4] = WAIT_PROCESS;
+  [centry + 5] = tpid;
+  //Schedule something else
+  multipush(R1,R2,R3,R4,R5);
+  call SCHEDULER;
+  multipop(R1,R2,R3,R4,R5);
+    
+  //Set return value as 0
+  [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = 0;
+
+endif;
+
+//signal syscall
+if(syscall == INT_SIGNAL) then
+  //Set mode 
+  [centry +9 ] = INT_SIGNAL;
+
+  alias iter R7;
+  alias ientry R8;
+  iter =0;
+
+  //Loop thru processes, ready the ones waiting for this process' signal
+  while(iter < 16) do
+    ientry = PROCESS_TABLE + iter*16;
+    if([ientry + 4] == WAIT_PROCESS && [ientry +5]== [SYSTEM_STATUS_TABLE+1]) then
+      [ientry +4 ] = READY;
+    endif;
+    iter=iter+1;
+  endwhile;
+
+  [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = 0;
+endif;
+
+if(syscall == INT_GETPID) then
+  //set return value
+    [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = [SYSTEM_STATUS_TABLE + 1];
+endif;
+
+if(syscall == INT_GETPPID) then
+  //set return value
+    [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = [PROCESS_TABLE +[SYSTEM_STATUS_TABLE + 1]*16 + 2];
+endif;
+
+//Reset mode
+[centry + 9] =0;
+//Switch stacks
+SP = [centry + 13];
+ireturn;

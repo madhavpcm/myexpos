@@ -1,0 +1,76 @@
+alias cpid R1 ;
+alias uptr R2;
+alias bi R5;
+cpid = [SYSTEM_STATUS_TABLE + 1];
+[PROCESS_TABLE + cpid* 16 + 13] = SP;
+uptr=SP;
+SP = [PROCESS_TABLE + cpid* 16 + 11]*512 - 1;
+[PROCESS_TABLE + cpid* 16 + 9] = INT_SHUTDOWN;
+
+//if not shell process return -1
+if( cpid != 2) then
+  [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -1;
+  SP=uptr;
+  [PROCESS_TABLE + cpid*16 + 9] = 0;
+  ireturn;
+endif;
+
+// if not root return -1
+if( [PROCESS_TABLE + cpid*16 + 3] != ROOT) then
+  [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -1;
+  SP=uptr;
+  [PROCESS_TABLE + cpid*16 + 9] = 0;
+  ireturn;
+endif;
+
+multipush(R1,R2);
+  R2=cpid;
+  R1=KILL_ALL;
+  call PROCESS_MANAGER;
+multipop(R1,R2);
+
+//store back all dirty bois
+bi= 0;
+while(bi < MAX_BUFFER) do
+  //buffer table is dirty
+  if([BUFFER_TABLE + bi*4 + 1] == 1) then
+    multipush(R1,R2,R5);
+      R2 = cpid;
+      R1= DISK_STORE;
+      R4 = [BUFFER_TABLE + bi*4];
+      R3 = BUFFER_BASE+bi;
+      call DEVICE_MANAGER;
+    multipop(R1,R2,R5);
+  endif;
+  bi=bi+1;
+endwhile;
+
+//inode and user table
+print "Saving disk..";
+R1= DISK_STORE;
+R2= [SYSTEM_STATUS_TABLE+1];
+R3 = DISK_FREE_LIST / 512;
+R4 = 2;
+call DEVICE_MANAGER;
+
+R1= DISK_STORE;
+R2= [SYSTEM_STATUS_TABLE+1];
+R3 = INODE_TABLE / 512;
+R4 = 3;
+call DEVICE_MANAGER;
+R1= DISK_STORE;
+R2= [SYSTEM_STATUS_TABLE+1];
+R3 = INODE_TABLE / 512 + 1;
+R4 = 4;
+call DEVICE_MANAGER;
+
+R1= DISK_STORE;
+R2= [SYSTEM_STATUS_TABLE+1];
+R3 = ROOT_FILE / 512;
+R4 = 5;
+call DEVICE_MANAGER;
+
+print "Disk save";
+print "Completed";
+print "poweroff";
+halt;

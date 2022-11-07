@@ -1,0 +1,127 @@
+// Device Manager
+alias funcNo R1;
+alias currPID R2;
+alias wordOut R3;
+alias retVal R5;
+
+
+//TERMINAL WRITE
+if( funcNo == TERMINAL_WRITE) then
+  //acquire terminal
+  multipush(R0,R1,R2,R3);
+
+  funcNo=ACQUIRE_TERMINAL;
+  currPID=[SYSTEM_STATUS_TABLE + 1];
+  call MOD_0;
+
+  multipop(R0,R1,R2,R3);
+
+  print R3;
+
+  multipush(R0,R1,R2,R3);
+
+  funcNo=RELEASE_TERMINAL;
+  currPID=[SYSTEM_STATUS_TABLE + 1];
+  call MOD_0;
+
+  multipop(R0,R1,R2,R3);
+  return;
+
+endif;
+//TERMINAL READ
+if( funcNo == TERMINAL_READ) then
+  //Acquire terminal
+  multipush(R0,R1,R2,R3);
+
+  funcNo=ACQUIRE_TERMINAL;
+  currPID=[SYSTEM_STATUS_TABLE + 1];
+  call MOD_0;
+
+  multipop(R0,R1,R2,R3);
+
+  read;
+
+  //set process to wait_terminal
+  [PROCESS_TABLE + currPID*16 + 4] = WAIT_TERMINAL;
+
+  //call scheduler
+  multipush(R0,R1,R2,R3);
+
+  call SCHEDULER;
+
+  multipop(R0,R1,R2,R3);
+
+  alias word R5;
+  word = ([PTBR + (R3)*2/512])*512 + (R3)%512;
+  [word] = [PROCESS_TABLE + currPID * 16 + 8];
+  return;
+  
+
+endif;//error
+
+//Disk load function
+if ( funcNo == DISK_LOAD) then
+  alias currpid R2;
+  alias pageno R3;
+  alias blockno R4;
+
+  //Acquire the device first
+  multipush(R1,R2,R3,R4);
+  
+  R1 = ACQUIRE_DISK;
+
+  call MOD_0;
+
+  multipop(R1,R2,R3,R4);
+
+  //Set disk status to load mode
+  [DISK_STATUS_TABLE + 1] = 0;
+  //Set page associated with disk op
+  [DISK_STATUS_TABLE + 2] = pageno;
+  //Set block associated with disk op
+  [DISK_STATUS_TABLE + 3] = blockno;
+
+  //non blocking load 
+  load(pageno, blockno);
+
+  //Set current state of process to WAITDISK
+  [PROCESS_TABLE + currpid*16 + 4] = WAIT_DISK;
+
+  //schedule another process
+  multipush(R1,R2,R3,R4);
+
+  call SCHEDULER;
+
+  multipop(R1,R2,R3,R4);
+
+  return;
+endif;
+
+if( funcNo == DISK_STORE) then
+  alias currpid R2;
+  alias pageno R3;
+  alias blockno R4;
+  //acquire disk
+  multipush(R1,R2,R3,R4);
+  R1 = ACQUIRE_DISK;
+  call RESOURCE_MANAGER;
+  multipop(R1,R2,R3,R4);
+
+  //set disk status params
+  //load store bit
+  [DISK_STATUS_TABLE + 1] = 1;
+  [DISK_STATUS_TABLE + 2] = pageno;
+  [DISK_STATUS_TABLE + 3] = blockno;
+
+  store(pageno, blockno);
+
+  [PROCESS_TABLE + currpid * 16 + 4]=WAIT_DISK;
+  multipush(R1,R2,R3,R4);
+
+  call SCHEDULER;
+
+  multipop(R1,R2,R3,R4);
+  return;
+endif;
+R0=-1;
+return;

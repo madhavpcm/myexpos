@@ -1,0 +1,232 @@
+// Module 1 : Process Manager Module
+alias funcno R1 ;
+alias cpid R2 ;
+alias uap R5;
+alias ptbr R6;
+alias iter R7;
+alias pentry R8;
+
+if( funcno == GET_PCB_ENTRY) then
+  //no cpid
+  iter=0;
+  while(iter < 16)do 
+    pentry = PROCESS_TABLE + iter*16;
+    //terminated process are free to donate process table entry
+    if([pentry + 4] == TERMINATED) then
+      R0=iter;
+      //Set ptbr to corresponding value
+      //$Set pTLR to 10 
+      [pentry + 1] = iter;
+      [pentry + 4] = ALLOCATED;
+      [pentry + 14] = PAGE_TABLE_BASE + iter*20;
+      [pentry + 15] = 10;
+      return;
+    endif;
+    iter=iter+1;
+  endwhile;
+  R0=-1;
+  return;
+endif;
+if( funcno == EXIT_PROCESS) then
+  iter=0;
+  //No need for int_exec bcz it is a process replacement
+  if([PROCESS_TABLE + cpid * 16 + 9] != INT_EXEC) then
+    while(iter < 16) do
+      pentry = PROCESS_TABLE + iter*16;
+      //If the boi  is waiting( and said sir died before calling ) then make it ready
+      if ([pentry+4] == WAIT_PROCESS && [pentry+5] == cpid) then
+        [pentry+4] = READY;
+      endif;
+      //Make it an orphan if 
+      if ([pentry+2] == cpid) then
+        [pentry+2] = -1;
+      endif;
+      iter=iter+1;
+    endwhile;
+  endif;
+  //Free the page table of the process
+  R1= FREE_PAGE_TABLE;
+  R2=cpid;
+  call PROCESS_MANAGER;
+//Free the user area page no of the process
+  R1= FREE_USER_AREA_PAGE;
+  R2=cpid;
+  call PROCESS_MANAGER;
+//Set status as terminated
+  [PROCESS_TABLE + cpid*16 + 4] = TERMINATED;
+  return;
+  
+endif;
+
+if (funcno == FREE_USER_AREA_PAGE) then
+  // Get the UAP
+  uap = [PROCESS_TABLE + cpid *16 + 11];
+
+  alias rentry R8;  
+
+  iter=0;
+  while(iter < 8) do
+    rentry = uap*512 + RESOURCE_TABLE_OFFSET + iter*2;
+    if([rentry] == SEMAPHORE ) then
+      //release this semaphore
+      multipush(R1,R2,R4,R5);
+        R1 = RELEASE_SEMAPHORE;
+        R2 = [SYSTEM_STATUS_TABLE + 1];
+        R3 = [rentry+1];
+        call RESOURCE_MANAGER;
+      multipop(R1,R2,R4,R5);
+    endif;
+
+    if([rentry] == FILE ) then
+      multipush(R1,R2,R4,R5);
+        R1 = CLOSE;
+        R2 = [rentry+1];
+        call FILE_MANAGER;
+      multipop(R1,R2,R4,R5);
+    endif;
+    //invalidate
+    [rentry] = -1;
+    iter=iter+1;
+  endwhile;
+
+  multipush(R1, R2, R5);
+
+  //Release the page
+  R1 = RELEASE_PAGE;
+  R2 = uap;
+  call MEMORY_MANAGER;
+
+  multipop(R1, R2, R5);
+
+  //This return works 
+  return;
+endif;
+
+if (funcno == FREE_PAGE_TABLE) then
+  ptbr = [PROCESS_TABLE + cpid* 16 +14];
+  //library invalidation
+  if(ptbr != PTBR) then
+    print "sus";
+  endif;
+  [ptbr + 0] = -1;
+  [ptbr + 1] = "0000";
+  [ptbr + 2] = -1;
+  [ptbr + 3] = "0000";
+
+  iter =4;
+  while(iter < 20) do
+    if( [ptbr + iter] != -1) then
+
+      //Release page
+      multipush(R1, R2,R3);
+      R1 = RELEASE_PAGE;
+      R2 = [ptbr+iter];
+      call MEMORY_MANAGER;
+
+      multipop( R1 ,R2,R3);
+
+      //invalidate page
+      [ptbr + iter] = -1;
+      [ptbr + iter+ 1] = "0000";
+    endif;
+    iter=iter+2;
+  endwhile;
+  
+  alias dentry R10;
+  dentry = DISK_MAP_TABLE + cpid*10 ;
+  //go through heap pages of the current process 
+  R1 = RELEASE_BLOCK;
+  if([dentry + 2] != -1) then
+    //Call release_block
+    R2 = [dentry+ 2];
+    call MEMORY_MANAGER;
+    //invalidate the entry
+    [dentry + 2] = -1;
+  endif;
+
+  if([dentry+ 3] != -1) then
+    R2 = [dentry+ 3];
+    call MEMORY_MANAGER;
+    //invalidate the entry
+    [dentry + 3] = -1;
+  endif;
+
+  //go through stack pages of the current process and invalidate any entry
+  if([dentry+ 8] != -1) then
+    R2 = [dentry+ 8];
+    call MEMORY_MANAGER;
+    //invalidate the entry
+    [dentry + 8] = -1;
+  endif;
+
+  if([dentry+ 9] != -1) then
+    R2 = [dentry + 9];
+    call MEMORY_MANAGER;
+    //invalidate the entry
+    [dentry+ 9] = -1;
+  endif;
+
+  [dentry + 4] =-1;
+  [dentry + 5] =-1;
+  [dentry + 6] =-1;
+  [dentry + 7] =-1;
+
+  return;
+endif;
+
+
+if( funcno == KILL_ALL) then
+  alias cpid R2;
+  alias inode R4;
+
+  inode = 0;
+
+  while(inode < MAX_FILE_NUM) do
+    //if inode is valid
+    if([INODE_TABLE+inode*16 + 1] != -1) then
+      //acquire it so no other process can try to modify the file
+      multipush(R2,R4) ;
+      R1= ACQUIRE_INODE;
+      R3= cpid;
+      R2= inode;
+      multipop(R2,R4) ;
+    endif;
+    inode=inode+1;
+  endwhile;
+
+  alias proc R4;
+  alias pentry R5;
+
+  proc =2;
+  while(proc < SWAPPER_DAEMON)do 
+    pentry = PROCESS_TABLE +proc*16;
+    if(proc != cpid && [pentry + 4] != TERMINATED) then
+      multipush(R1,R2,R3,R4);
+        R1=EXIT_PROCESS;
+        R2=proc;
+        call PROCESS_MANAGER;
+      multipop(R1,R2,R3,R4);
+    endif;
+    proc=proc+1;
+  endwhile;
+
+  alias inode R4;
+  inode=0;
+  while(inode < MAX_FILE_NUM) do
+    //if inode is valid
+    if([INODE_TABLE+inode*16 + 1] != -1) then
+      //acquire it so no other process can try to modify the file
+      multipush(R1,R2,R4) ;
+      R1= RELEASE_INODE;
+      R3= cpid;
+      R2= inode;
+      multipop(R1,R2,R4) ;
+    endif;
+    inode=inode+1;
+  endwhile;
+
+  return;
+endif;
+
+R0=-1;
+return;

@@ -1,0 +1,261 @@
+alias funcno R1;
+
+if(funcno == OPEN) then
+  alias filename R2;
+  alias i R3;
+
+  i=0;
+  //find file in inode table
+  while( i < MAX_FILE_NUM) do
+    if([INODE_TABLE + i*16 + 1] == filename) then
+      break;
+    endif;
+    i=i+1;
+  endwhile;
+   
+   //if inode with given filename isnt found
+  if(i == MAX_FILE_NUM) then
+    R0=-1;
+    return;
+  endif;
+
+  //lock the inode
+  multipush(R1,R2,R3);
+    R1= ACQUIRE_INODE;
+    R2 = i;
+    R3 = [SYSTEM_STATUS_TABLE + 1];
+    call RESOURCE_MANAGER;
+  multipop(R1,R2,R3);
+
+//return bcz lock failure ( file got deleted)
+  if(R0 == -1)then
+    return;
+  endif;
+
+//exec files are not openable by processes
+  if([INODE_TABLE + i*16] == EXEC) then
+    multipush(R1,R2,R3);
+      R1= RELEASE_INODE;
+      R2 = i;
+      R3 = [SYSTEM_STATUS_TABLE + 1];
+      call RESOURCE_MANAGER;
+    multipop(R1,R2,R3);
+
+    R0=-1;
+    return;
+  endif;
+
+  alias j R4;
+  j=0;
+  while(j < MAX_OPENFILE_NUM) do
+    //free entry in open file table
+    if([OPEN_FILE_TABLE + j*4] == -1) then
+      break;
+    endif;
+    j=j+1;
+  endwhile;
+
+//no free entries;
+  if(j == MAX_OPENFILE_NUM) then
+    multipush(R1,R2,R3,R4);
+      R1= RELEASE_INODE;
+      R2=i;
+      R3=[SYSTEM_STATUS_TABLE+1];
+      call RESOURCE_MANAGER;
+    multipop(R1,R2,R3,R4);
+    R0=-2;
+    return;
+  endif;
+
+  alias ofte R5;
+  alias fste R6;
+  ofte = OPEN_FILE_TABLE + j*4;
+  fste = FILE_STATUS_TABLE + i*4;
+
+  if([INODE_TABLE + i*16 + 1] == "root")then
+    [ofte] = INODE_ROOT;
+  else
+    //if file is opened for first time
+    if([fste + 1] == -1) then
+      [fste+ 1] =1;
+    //if file was opened before
+    else
+      [fste + 1] =[fste+ 1]+1;
+    endif;
+    [ofte] = i;
+  endif;
+
+//set open isntance count
+  [ofte +1] = 1;
+//set lseek
+  [ofte +2] = 0;
+
+  multipush(R1,R2,R3,R4);
+    R1= RELEASE_INODE;
+    R2=i;
+    R3=[SYSTEM_STATUS_TABLE+1];
+    call RESOURCE_MANAGER;
+  multipop(R1,R2,R3,R4);
+
+  R0 = j;
+  return;
+endif;
+
+if(funcno == CLOSE) then
+  //open file table index
+  alias ofti R2;
+  alias i R3;
+  alias ofte R4;
+  ofte = OPEN_FILE_TABLE + ofti*4;
+  //inode index from open file table
+  i=[ofte];
+  //given filename not found this aint done bcz of assumption
+  //decrement count
+  [ofte+1] = [ofte+1]-1;
+  
+  if([ofte+1] == 0) then
+    //invalidate open file table entry
+    [ofte]=-1;
+    [ofte+1]=-1;
+    [ofte+2]=-1;
+    //if file index aint root file index
+    if(i != INODE_ROOT) then
+      //decrement the open file count
+      R5 =FILE_STATUS_TABLE + i*4 + 1;
+      [R5] = [R5]-1;
+
+      if([R5] == 0) then
+        //if 0 invalidate this also
+        [R5]=-1;
+      endif;
+    endif;
+  endif;
+  return;
+endif;
+
+if(funcno == BUFFERED_READ) then
+//disk block
+//offset
+//memory address
+  alias blockno R2;
+  alias offset R3;
+  alias memory R4;
+
+  alias buff R5;
+  alias bentry R6;
+  //scheme decision btw
+  buff=blockno %4;
+
+  //acquire buffer lock
+  multipush(R1,R2,R3,R4,R5);
+    R1= ACQUIRE_BUFFER;  
+    R2= buff;
+    R3 = [SYSTEM_STATUS_TABLE+1];
+    call RESOURCE_MANAGER;
+  multipop(R1,R2,R3,R4,R5);
+
+  bentry = BUFFER_TABLE + buff*4;
+  //buffer occupied
+  if([bentry] != blockno) then
+    //if dirty then write back
+    if([bentry+1] != 0) then
+      //send dirty back home
+      multipush(R1,R2,R3,R4,R5,R6);
+        R1= DISK_STORE;
+        R4 = [bentry];
+        R2 = [SYSTEM_STATUS_TABLE+1];
+        R3 = BUFFER_BASE+buff;
+        call DEVICE_MANAGER;
+      multipop(R1,R2,R3,R4,R5,R6);
+
+      [bentry+1] =0;
+    endif;
+
+    multipush(R2,R3,R4,R5,R6);
+      R1= DISK_LOAD;
+      R4 = blockno;
+      R2 = [SYSTEM_STATUS_TABLE+1];
+      R3 = BUFFER_BASE+buff;
+      call DEVICE_MANAGER;
+    multipop(R2,R3,R4,R5,R6);
+
+    [bentry] = blockno;
+  endif;
+
+  [memory] = [BUFFER + buff*512 + offset]; 
+
+  multipush(R1,R2,R3,R4,R5);
+    R1= RELEASE_BUFFER;  
+    R2= buff;
+    R3 = [SYSTEM_STATUS_TABLE+1];
+    call RESOURCE_MANAGER;
+  multipop(R1,R2,R3,R4,R5);
+
+  
+  return;
+endif;
+
+if(funcno == BUFFERED_WRITE) then
+//disk block
+//offset
+//memory address
+  alias blockno R2;
+  alias offset R3;
+  alias memory R4;
+
+  alias buff R5;
+  alias bentry R6;
+  //scheme decision btw
+  buff=blockno %4;
+
+  //acquire buffer lock
+  multipush(R1,R2,R3,R4,R5);
+    R1= ACQUIRE_BUFFER;  
+    R2= buff;
+    R3 = [SYSTEM_STATUS_TABLE+1];
+    call RESOURCE_MANAGER;
+  multipop(R1,R2,R3,R4,R5);
+
+  bentry = BUFFER_TABLE + buff*4;
+  breakpoint;
+  //buffer occupied
+  if([bentry] != blockno) then
+    //if dirty then write back
+    if([bentry+1] != 0) then
+      //send dirty back home
+      multipush(R1,R2,R3,R4,R5,R6);
+        R1= DISK_STORE;
+        R4 = [bentry];
+        R2 = [SYSTEM_STATUS_TABLE+1];
+        R3 = BUFFER_BASE+buff;
+        call DEVICE_MANAGER;
+      multipop(R1,R2,R3,R4,R5,R6);
+
+      [bentry+1] =0;
+    endif;
+
+    multipush(R1,R2,R3,R4,R5,R6);
+      R1= DISK_LOAD;
+      R4 = blockno;
+      R2 = [SYSTEM_STATUS_TABLE+1];
+      R3 = BUFFER_BASE+buff;
+      call DEVICE_MANAGER;
+    multipop(R1,R2,R3,R4,R5,R6);
+
+    [bentry] = blockno;
+  endif;
+
+    breakpoint;
+   [(BUFFER_BASE + buff)*512 + offset] = memory; 
+   [bentry+1] = 1;
+
+  multipush(R1,R2,R3,R4,R5);
+    R1= RELEASE_BUFFER;  
+    R2= buff;
+    R3 = [SYSTEM_STATUS_TABLE+1];
+    call RESOURCE_MANAGER;
+  multipop(R1,R2,R3,R4,R5);
+
+  
+  return;
+endif;

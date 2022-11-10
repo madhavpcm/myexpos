@@ -1,0 +1,63 @@
+//STORE UPTR
+alias i R5;
+alias flag R6;
+//DONT USE ALIASES BEFORE BACKUP
+[PROCESS_TABLE +[SYSTEM_STATUS_TABLE+1]*16+ 13] = SP;
+//UAP set by us
+SP = [PROCESS_TABLE +[SYSTEM_STATUS_TABLE +1]*16 + 11]*512 -1;
+//backup reg
+backup;
+
+//Pager module
+if([SYSTEM_STATUS_TABLE+5] != 0) then
+  //swapping initiated
+  if([SYSTEM_STATUS_TABLE+1] == SWAPPER_DAEMON) then
+    R1= [SYSTEM_STATUS_TABLE+5];
+    R2= SWAPPER_DAEMON; 
+    call PAGER_MODULE;
+  endif;
+else
+  //no swapping
+  if([SYSTEM_STATUS_TABLE+2] < MEM_LOW) then
+    //time to take some processes out
+    [SYSTEM_STATUS_TABLE+5] = SWAP_OUT;
+  else
+    //time to take some processes in
+    if([SYSTEM_STATUS_TABLE+4] > 0) then
+      i=3;
+      flag = 0;
+      while( i < SWAPPER_DAEMON) do 
+        if([PROCESS_TABLE + i*16 + 6] ==1 && [PROCESS_TABLE + i *16] > MAX_TICK) then
+          flag = 1;
+          break;
+        endif;
+        i = i+1;
+      endwhile;
+
+      if([SYSTEM_STATUS_TABLE+2] > MEM_HIGH || flag == 1) then
+        [SYSTEM_STATUS_TABLE +5]  = SWAP_IN;
+      endif;
+    endif;
+  endif;
+
+endif;
+
+//save reg in use
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]* 16 + 4] = READY;
+
+i=0;
+while(i < 16) do
+  if([PROCESS_TABLE + i*16+1] >=0) then
+    [PROCESS_TABLE + i*16] = [PROCESS_TABLE + i*16] + 1;
+  endif;
+  i = i + 1;
+endwhile;
+//set reg r0 r1 r2 as arg1 arg2 arg3
+
+call SCHEDULER;
+
+restore;
+//pop reg in use
+//DONT USE ALIASES AFTER RESTORE
+SP=[PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 +13];
+ireturn;

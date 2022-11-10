@@ -1,0 +1,324 @@
+//Boot Module 
+//ex-handler
+loadi(2,15);
+loadi(3,16);
+
+//disk free lsit
+loadi(61,2);
+
+//Root file
+loadi(62,5);
+
+//library
+loadi(63,13);
+loadi(64,14);
+
+//Init
+loadi(65,7);
+
+//Shell 
+loadi(67,9);
+loadi(68,10);
+
+//Idle
+loadi(69,11);
+
+//INT=1; timer interrupt
+loadi(4,17);
+loadi(5,18);
+
+//INT=2 disk interrupt
+loadi(6,19);
+loadi(7,20);
+
+//INT=3; terminal interrupt handler
+loadi(8,21);
+loadi(9,22);
+
+//INT=4; File create and delete
+loadi(10, 23);
+loadi(11, 24);
+
+//INT=5; Open and Close
+loadi(12,25);
+loadi(13,26);
+
+//INT=6; read
+loadi(14,27);
+loadi(15,28);
+
+//INT=7; write
+loadi(16,29);
+loadi(17,30);
+
+//INT=8; fork
+loadi(18,31);
+loadi(19,32);
+
+//INT=9; exec
+loadi(20,33);
+loadi(21,34);
+
+//INT=10; exit
+loadi(22,35);
+loadi(23,36);
+
+//INT=11; Process Sync 
+loadi(24,37);
+loadi(25,38);
+
+//INT=12; logout
+loadi(26,39);
+loadi(27,40);
+
+//INT=13; Semget and Semrelease
+loadi(28,41);
+loadi(29,42);
+
+//INT=14; Semlock and Semunlock
+loadi(30,43);
+loadi(31,44);
+
+//INT=15; Shutdown
+loadi(32,45);
+loadi(33,46);
+
+//INT=16; User stuff 
+loadi(34, 47);
+loadi(35, 48);
+
+//INT=17; login
+loadi(36, 49);
+loadi(37, 50);
+
+//MOD_0 : Resource Manager Module
+loadi(40, 53);
+loadi(41, 54);
+
+//MOD_1 : Process Manager Module
+loadi(42, 55);
+loadi(43, 56);
+
+//MOD_2 : Memory Manager Module
+loadi(44, 57);
+loadi(45, 58);
+
+//MOD_3 : File Manager Module
+loadi(46,59);
+loadi(47,60);
+
+//MOD_4 : Device Manager Module
+loadi(48, 61);
+loadi(49, 62);
+
+//MOD_5 : Context Switch Module
+loadi(50,63);
+loadi(51,64);
+
+//MOD_6 : Pager Module
+loadi(52,65);
+loadi(53,66);
+
+//inode + user table 
+loadi(59, 3);
+loadi(60, 4);
+
+//user program 1
+//83,84 - Heap
+//85- Code
+//86-87- Stack
+//88 - UAP
+
+//user program 2
+//89-90 heap
+//91 Code
+//92-93 Stack
+//94 UAP
+
+PTBR=PAGE_TABLE_BASE+20;
+PTLR=10;
+
+//library
+[PTBR+0]=63;
+[PTBR+1]="0100";
+[PTBR+2]=64;
+[PTBR+3]="0100";
+//heap
+[PTBR+4]=-1;
+[PTBR+5]="0000";
+[PTBR+6]=-1;
+[PTBR+7]="0000";
+//code
+[PTBR+8]=65;
+[PTBR+9]="0100";
+[PTBR+10]=-1;
+[PTBR+11]="0100";
+[PTBR+12]=-1;
+[PTBR+13]="0000";
+[PTBR+14]=-1;
+[PTBR+15]="0000";
+//stack
+[PTBR+16]=66;
+[PTBR+17]="0110";
+[PTBR+18]=-1;
+[PTBR+19]="0110";
+
+alias init_process_table R6;
+init_process_table = 28688; // process_table + 1*16
+[init_process_table ] = 0;
+[init_process_table + 1] = 1;
+[init_process_table + 3] = 1;
+[init_process_table + 4] = CREATED;
+[init_process_table + 11] = 77;
+[init_process_table + 12] = 0;
+[init_process_table + 13] = 8*512;
+[init_process_table + 14] = PTBR;
+[init_process_table + 15] = 10;
+[66*512]=[65*512 + 1];
+//shell
+PTBR=PAGE_TABLE_BASE+40;
+PTLR=10;
+
+//library
+[PTBR+0]=63;
+[PTBR+1]="0100";
+[PTBR+2]=64;
+[PTBR+3]="0100";
+//heap
+[PTBR+4]=82;
+[PTBR+5]="0000";
+[PTBR+6]=-1;
+[PTBR+7]="0000";
+//code
+[PTBR+8]=67;
+[PTBR+9]="0100";
+[PTBR+10]=68;
+[PTBR+11]="0100";
+[PTBR+12]=-1;
+[PTBR+13]="0000";
+[PTBR+14]=-1;
+[PTBR+15]="0000";
+//stack
+[PTBR+16]=78;
+[PTBR+17]="0110";
+[PTBR+18]=79;
+[PTBR+19]="0110";
+//init
+
+alias shell_process_table R6;
+inline "ADD R6,16";
+[shell_process_table ] = 0;
+[shell_process_table + 1] = 2;
+[shell_process_table + 3] = 1;
+[shell_process_table + 4] = CREATED;
+[shell_process_table + 11] = 80;
+[shell_process_table + 12] = 0;
+[shell_process_table + 13] = 8*512;
+[shell_process_table + 14] = PTBR;
+[shell_process_table + 15] = 10;
+[78*512]=[67*512 + 1];
+
+alias shell_disk_map_table R6;
+shell_disk_map_table = 30052 ; // disk map table + 2*10
+[shell_disk_map_table ] = -1;
+[shell_disk_map_table + 1] = -1;
+[shell_disk_map_table + 2] = -1;
+[shell_disk_map_table + 3] = -1;
+[shell_disk_map_table + 4] = 9;
+[shell_disk_map_table + 5] = 10;
+[shell_disk_map_table + 6] = -1;
+[shell_disk_map_table + 7] = -1;
+[shell_disk_map_table + 8] = -1;
+[shell_disk_map_table + 9] = -1;
+
+//user p 1
+
+//set other process table statuses to terminated
+alias iter R0;
+alias pentry R1;
+iter=2;
+while(iter < 16) do
+  [PROCESS_TABLE +iter*16+4] = TERMINATED;
+  [PROCESS_TABLE +iter*16] = 0;
+  inline "ADD R0,1";
+endwhile;
+
+//free pages and things
+iter =0;
+while(iter < 128) do
+  if(iter < 83) then
+    [MEMORY_FREE_LIST + iter]  = 1;
+  else
+    [MEMORY_FREE_LIST + iter]  = 0;
+  endif;
+  inline "ADD R0,1";
+endwhile;
+
+[SYSTEM_STATUS_TABLE + 2] =45;
+
+iter=0;
+alias sentry R1;
+//Initalize semaphore table
+while(iter < MAX_SEM_COUNT) do 
+  sentry = SEMAPHORE_TABLE + iter*4;
+  //process count to 0
+  [sentry+1]=0;
+  //locking pid
+  [sentry]=-1;
+  inline "ADD R0,1";
+endwhile;
+
+iter=0;
+alias bentry R1;
+//buffer table
+while(iter < MAX_BUFFER) do
+  bentry = BUFFER_TABLE + iter*4;
+  [bentry]=-1;
+  [bentry+1]=0;
+  [bentry+2]=-1;
+  inline "ADD R0,1";
+endwhile;
+
+iter=0;
+alias fentry R1;
+//file status table
+while(iter < MAX_FILE_NUM) do
+  fentry = FILE_STATUS_TABLE + iter*4;
+  [fentry] = -1;
+  [fentry + 1] = -1;
+//  [fentry + 2] = -1;
+  inline "ADD R0,1";
+endwhile;
+
+iter=0;
+alias ofentry R1;
+// initialize open file table
+while(iter < MAX_OPENFILE_NUM) do
+  ofentry = OPEN_FILE_TABLE+ iter*4;
+  [ofentry] = -1;
+  [ofentry + 1] = 0;
+  inline "ADD R0,1";
+endwhile;
+
+iter=0;
+alias resentry R1;
+//resource table entry of shell
+while(iter < 8) do
+  resentry =  80*512 + RESOURCE_TABLE_OFFSET + iter*2;
+  [resentry] = -1;
+  [resentry + 1] = -1;
+  inline "ADD R0,1";
+endwhile;
+
+//wait_mem_count
+[SYSTEM_STATUS_TABLE + 3] =0;
+//swapcount 
+[SYSTEM_STATUS_TABLE+4] = 0;
+//paging status
+[SYSTEM_STATUS_TABLE+5] = 0;
+
+[TERMINAL_STATUS_TABLE] = 0;
+[DISK_STATUS_TABLE]=0;
+breakpoint;
+return;
+

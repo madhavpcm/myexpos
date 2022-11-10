@@ -1,0 +1,157 @@
+//Read Operation
+//storing this so that os can show that this interrupt is not available 
+alias filedesc R1;
+alias cpid R2;
+alias centry R3;
+alias uptr  R4;
+
+cpid = [SYSTEM_STATUS_TABLE+1];
+centry = PROCESS_TABLE + cpid*16;
+
+[centry + 9] = INT_READ;
+//saving UPTR
+uptr= SP;
+[centry + 13] = SP;
+//setting stack to kernel stack
+SP=[centry+ 11]*512 - 1;
+//backing up context
+
+//uptr-4 is a virtual address, so manually translate
+
+filedesc = [[PTBR + (uptr-4)*2/512]*512 + (uptr-4)%512];
+
+if(filedesc != -1) then
+//read from file
+  alias ret R5;
+  alias rentry R6;
+  alias ofti R7;
+  alias i R8;
+  alias word R9; 
+  alias lseek R10;
+
+  ret=[PTBR + (uptr-1)*2/ 512]*512 + (uptr-1)%512;
+  rentry = [centry + 11]*512 + RESOURCE_TABLE_OFFSET;
+
+  //invalid file descriptor ( resource table index)
+  if(filedesc < 0 || filedesc > 7 || [rentry + 2*filedesc] != FILE) then
+    [ret] = -1;
+    goto _return_;
+  endif;
+
+//index of openfiletable 
+  ofti = [rentry + 2*filedesc +1];
+//index of inode 
+  i = [OPEN_FILE_TABLE + ofti*4];
+
+//acquire lock
+  multipush(R1,R2,R3,R4,R5,R6,R7,R8);
+    R1= ACQUIRE_INODE;
+    R3 = cpid;
+    R2= i;
+    call RESOURCE_MANAGER;
+  multipop(R1,R2,R3,R4,R5,R6,R7,R8);
+  ret=[PTBR + (uptr-1)*2/ 512]*512 + (uptr-1)%512;
+
+//file got deleted
+  if(R0==-1)then
+    [ret] = -1;
+    goto _return_;
+  endif;
+
+  //lseek from ofti
+  lseek = OPEN_FILE_TABLE + ofti*4 + 2;
+  //virtual address of word
+  word = [[PTBR +(uptr-3)*2/512]*512 + (uptr-3)%512];
+  //physical address of word
+  word = [PTBR + (word)*2/ 512]*512 + (word)%512;
+
+  if(i == INODE_ROOT) then
+    //if inode-root then we can directly access from memroy copy of inoderoot
+    //however if lseek is 480, it means end of file has reached 
+    if([lseek] == 480) then
+      multipush(R1,R2,R3,R4);
+        R1= RELEASE_INODE;
+        R3= [SYSTEM_STATUS_TABLE+1];
+        R2= i;
+        call RESOURCE_MANAGER;
+      multipop(R1,R2,R3,R4);
+  //return -2
+      ret=[PTBR + (uptr-1)*2/ 512]*512 + (uptr-1)%512;
+      [ret] = -2;
+      goto _return_;
+    endif;
+
+    //read the word at lseek
+    [word] = [ROOT_FILE +[lseek]];
+    //increment lseek
+  else
+    //again, end of file
+    if([lseek] == [INODE_TABLE + i*16 + 2]) then
+      multipush(R1,R2,R3,R4);
+        R1= RELEASE_INODE;
+        R3= cpid;
+        R2= i;
+        call RESOURCE_MANAGER;
+      multipop(R1,R2,R3,R4);
+    ret=[PTBR + (uptr-1)*2/ 512]*512 + (uptr-1)%512;
+  //return -2
+      [ret] = -2;
+      goto _return_;
+    endif;
+
+//buffered read for the disk
+    multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
+      R1 = BUFFERED_READ;
+      // lseek will be between 0 to 2048 (max block a file can have)
+      // get the block no lseek / 512
+      R2 = [INODE_TABLE + i*16 + 8 + [lseek] / 512];
+      // offset
+      R3 = [lseek] % 512;
+      // physical address of word
+      R4 = word;
+      call FILE_MANAGER;
+    multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
+
+    //increment lseek
+  endif;
+    [lseek] = [lseek] + 1;
+    [ret] =0;
+
+// release the lock
+  multipush(R1,R2,R3,R4);
+    R1= RELEASE_INODE;
+    R3= cpid;
+    R2= i;
+    call RESOURCE_MANAGER;
+  multipop(R1,R2,R3,R4);
+
+
+  [ret] = 0;
+  goto _return_;
+
+
+else
+  // read from terminal
+    alias word R5; 
+    //virtual address of word
+    word = [([PTBR +(uptr-3)*2/512])*512 + (uptr-3)%512];
+    multipush(R0,R1,R2,R3,R4);
+
+      R1 = TERMINAL_READ;  
+      R2 = [SYSTEM_STATUS_TABLE+1];
+      R3 = word;
+      call MOD_4;
+
+    multipop(R0,R1,R2,R3,R4);
+
+    alias retaddr R6;
+    retaddr = ([PTBR + (uptr-1)*2/ 512])*512 + (uptr-1)%512;
+    [retaddr] = 0;
+endif;
+
+//restoring context
+//setting mode bit to 0 for user mode
+_return_:
+[centry + 9] = 0;
+SP=[centry+ 13];
+ireturn;

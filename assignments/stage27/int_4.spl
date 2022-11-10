@@ -1,0 +1,218 @@
+// INT 4
+// Create and Delete function
+alias  cpid  R1 ; 
+alias  centry R2;
+alias  uptr  R3;
+alias ret R14;
+cpid = [SYSTEM_STATUS_TABLE + 1];
+centry = PROCESS_TABLE + cpid *16;
+
+//Switch stacks
+[centry + 13] = SP;
+uptr = SP;
+SP = [centry + 11] * 512 - 1;
+
+alias syscall R4;
+syscall = [[PTBR + (uptr-5)*2/512]*512 + (uptr-5)%512];
+ret = [PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512;
+if(syscall == INT_CREATE) then
+  //mode flag
+  [centry + 9] = INT_CREATE;
+  alias filename R5;
+  alias perm R6;
+  //get function arguments
+  filename = [[PTBR + (uptr-4)*2/512]*512 + (uptr-4)%512];
+  perm = [[PTBR + (uptr-3)*2/512]*512 + (uptr-3)%512];
+
+  alias i R7;
+  alias ientry R8;
+  alias rentry R9;
+
+  i=0;
+  //loop thru inode entries to check if this filename already exists
+  while(i < MAX_FILE_NUM)  do
+    ientry = INODE_TABLE + i*16;   
+    if([ientry + 1] == filename) then
+      //error as filename already exists
+      [ret] = 0;
+      goto _return_;
+      break;
+    endif;
+    i=i+1;
+  endwhile;
+  //find free entry
+  i=0;
+  while(i < MAX_FILE_NUM)  do
+    ientry = INODE_TABLE + i*16;   
+    if([ientry + 1] == -1) then
+      //free entry
+      break;
+    endif;
+    i=i+1;
+  endwhile;
+  if(i == MAX_FILE_NUM) then
+    //no free entry avaialbe
+    [ret] = -1;
+    goto _return_;
+  endif;
+
+  rentry = ROOT_FILE + i* 8;
+  //INODE TABLE
+  //set filename
+  [ientry + 1] = filename;
+  //set filesize
+  [ientry + 2] = 0;
+  //set type
+  [ientry] = DATA;
+  //set blockno
+  [ientry + 8] = -1;
+  [ientry + 9] = -1;
+  [ientry + 10] = -1;
+  [ientry + 11] = -1;
+  //set userid
+  [ientry +3] = [centry +3];
+  //set permission
+
+  [ientry +4] = perm;
+  //ROOT FILE
+  //set filename
+  [rentry ] = filename;
+  //set filesize
+  [rentry + 1] = 0;
+  //set type
+  [rentry + 2] = DATA;
+  //set user name 
+  [rentry + 3] = [USER_TABLE  + [centry +3]*2];
+  //set permssions
+  [rentry + 4] = perm;
+
+  [ret] = 0;
+  goto _return_;
+endif;
+
+if( syscall == INT_DELETE) then
+  [centry + 9] = INT_DELETE;
+  alias filename R5;
+  //get function arguments
+  filename = [[PTBR + (uptr-4)*2/512]*512 + (uptr-4)%512];
+
+  alias i R7;
+  alias ientry R8;
+  i=0;
+  //search for the file
+  while(i < MAX_FILE_NUM) do
+    ientry = INODE_TABLE + i*16;
+    if([ientry + 1] == filename) then
+      break;
+    endif;
+    i=i+1;
+  endwhile;
+
+
+  //file doesnt exist
+  if(i == MAX_FILE_NUM) then
+    [ret] = 0;
+    goto _return_;
+  endif;
+
+  //file isnt a data file
+  if([ientry] != DATA) then
+    print "NotDataFile";
+    [ret] = -1;
+    goto _return_;
+  endif;
+
+  //if file is EXCLUSIVE
+  if([ientry + 4] == EXCLUSIVE ) then
+    // and user aint root && the current user doesnt own this file
+    //return
+    if([centry + 3] != ROOT && [centry + 3] != [ientry+3]) then
+      print "NoPermission";
+      [ret] = -1;
+      goto _return_;
+    endif;
+  endif;
+
+  //acquire inode lock
+  multipush(R1,R2,R3,R5,R7,R8,R14);
+    R1=ACQUIRE_INODE;
+    R2=i;
+    R3=[SYSTEM_STATUS_TABLE+1];
+    call RESOURCE_MANAGER;
+  multipop(R1,R2,R3,R5,R7,R8,R14);
+  
+  print "acquired";
+  //if the file is open somewhere
+  //dont delete it 
+  if([FILE_STATUS_TABLE+ i*4+1] != -1) then
+    multipush(R1,R2,R3,R4);
+      R1=RELEASE_INODE;
+      R2=i;
+      R3=[SYSTEM_STATUS_TABLE+1];
+      call RESOURCE_MANAGER;
+    multipop(R1,R2,R3,R4);
+
+    print "FileOpenErr";
+    [ret] = -2;
+    goto _return_;
+  endif;
+  
+  alias j R9;
+  alias b R10;
+  alias bentry R11;
+  alias rentry R12;
+  j=8;
+  //iterate through the disk blocks of the file
+  while(j < 12) do
+    b = [ientry + j];
+
+    bentry = BUFFER_TABLE + (b%MAX_BUFFER)*4;
+    if( b != -1 && [bentry] ==b && [bentry+1] ==1)then
+      [bentry + 1] =0;
+      multipush(R1,R2,R3,R4);
+        R1=RELEASE_BLOCK;
+        R2=j;
+        R3=[SYSTEM_STATUS_TABLE+1];
+        call MEMORY_MANAGER;
+      multipop(R1,R2,R3,R4);
+    endif;
+    //if the disk block is loaded into a buffer
+    //call release inode 
+    j=j+1;
+  endwhile;
+
+  j=0;
+  while(j < 16) do
+    [ientry+j] =-1;
+    if(j == 2) then
+      [ientry+j] = 0;
+    endif;
+    j=j+1;
+  endwhile;
+
+  rentry = ROOT_FILE + i*8;
+  j=0;
+  //invalidate root file
+  while(j< 5) do
+    [rentry + j] = -1;
+    if(j == 1) then
+      [rentry+j] = 0;
+    endif;
+    j=j+1;
+  endwhile;
+
+  multipush(R1,R2,R3,R5,R7,R8);
+    R1=RELEASE_INODE;
+    R2=i;
+    R3=[SYSTEM_STATUS_TABLE+1];
+    call RESOURCE_MANAGER;
+  multipop(R1,R2,R3,R5,R7,R8);
+
+  [ret] = 0;
+
+endif;
+
+_return_:
+[centry + 9] =0;
+SP = uptr;
+ireturn;

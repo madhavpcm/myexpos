@@ -1,0 +1,22 @@
+int main(){
+    decl
+      int i;
+      int name;
+      int temp;
+    enddecl
+
+    begin
+      i=0;
+
+      temp = exposcall("Write", -2, "xGetUname");
+      while( i < 16 ) do
+        name = exposcall("Getuname", i);
+        if( name != -1) then
+          temp = exposcall("Write", -2 , name);
+        endif;
+        i=i+1;
+      endwhile;
+    
+      return 0;
+    end
+  }

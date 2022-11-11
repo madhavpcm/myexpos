@@ -51,7 +51,9 @@ begin
     fdwrite=exposcall("Open", newfile);
     if(fdread>=0 AND fdwrite>=0) then
         offset=(pid-3)*100;
+        breakpoint;
         temp=exposcall("Seek",fdread, offset);
+        breakpoint;
 
         iter=0;
         while(iter<=99) do

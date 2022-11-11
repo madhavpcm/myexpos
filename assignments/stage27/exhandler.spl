@@ -16,8 +16,7 @@ multipush(EIP);
 //- - Pagefault, Illegal Instruction, Illegal memory ,Arithmetic
 //- EMA: for illegal memory access
 uptr = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 13];
-if( EC != 0) then
-  breakpoint;
+if( EC != 0 || uptr == 512*PTLR -1) then
   if( EC == 1) then
     print "Ex.Inst";
   endif;
@@ -32,12 +31,10 @@ if( EC != 0) then
   endif; 
   
   // Kill process
-  breakpoint;
   R1=EXIT_PROCESS;
   R2=[SYSTEM_STATUS_TABLE+1];
   call PROCESS_MANAGER;
 
-  print "not PF";
   call SCHEDULER;
 else
 
@@ -82,5 +79,4 @@ restore;
 SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 13] + 1; 
 [[PTBR + SP*2/512]*512 + SP % 512] = EIP;
 // goto user mode but not the next IP
-breakpoint;
 ireturn;

@@ -11,7 +11,7 @@ if(funcno == SWAP_OUT) then
   iter = 3;
   proc = -1;
   maxtick =-1;
-  maxtick =-1;
+  maxtickproc =-1;
   while(iter < SWAPPER_DAEMON) do
     pentry = PROCESS_TABLE + iter * 16;
 
@@ -23,11 +23,11 @@ if(funcno == SWAP_OUT) then
       endif;
 
     // else if no wait process recieved and semaphore is recieved
-      if(proc == -1 && [pentry+4]== WAIT_SEMAPHORE) then
+      if(proc == -1 && [pentry+4]== WAIT_SEMAPHORE && [pentry +6] != 1) then
         proc = iter;
       endif;
 
-      if(proc == -1 && [pentry+4] != RUNNING && [pentry+4] != TERMINATED && [pentry+4] != ALLOCATED && [pentry] > maxtick) then
+      if(proc == -1 && [pentry+4] != RUNNING && [pentry+4] != TERMINATED && [pentry+4] != ALLOCATED && [pentry] > maxtick && [pentry+6] !=1) then
         maxtick = [pentry];
         maxtickproc = iter;
       endif;
@@ -58,11 +58,11 @@ if(funcno == SWAP_OUT) then
     if([pgentry + iter*2] == -1) then
       break;
     else
-      multipush(R1,R2,R3,R4,R5,R6);
+      multipush(R1,R2,R3);
         R1= RELEASE_PAGE;
         R2= [pgentry + iter*2];
         call MEMORY_MANAGER;
-      multipop(R1,R2,R3,R4,R5,R6);
+      multipop(R1,R2,R3);
 
       [pgentry + iter*2] = -1;
       [pgentry + iter*2+1] ="0000";
@@ -74,12 +74,12 @@ if(funcno == SWAP_OUT) then
   dentry = DISK_MAP_TABLE + proc*10;
   iter = 2;
   while( iter < 4) do
-    if([pgentry+iter*2] != - 1 && [MEMORY_FREE_LIST + [pgentry + 4]] == 1) then
+    if([pgentry+iter*2] != - 1 && [MEMORY_FREE_LIST + [pgentry + iter*2]] == 1) then
       //get a swap area block from disk
-      multipush(R1,R2,R3,R4,R5,R6,R7);
+      multipush(R1,R2,R3);
         R1=GET_SWAP_BLOCK;
         call MEMORY_MANAGER;
-      multipop(R1,R2,R3,R4,R5,R6,R7);
+      multipop(R1,R2,R3);
 
       [dentry+iter] = R0;
 
@@ -91,13 +91,13 @@ if(funcno == SWAP_OUT) then
         R4= R0;
         call DEVICE_MANAGER;
       multipop(R1,R2,R3,R4,R5,R6,R7);
-      multipush(R1,R2);
+      multipush(R1,R2,R3);
         R1= RELEASE_PAGE;
-        R2= [pgentry+2*iter];
+        R2= [pgentry+iter*2];
         call MEMORY_MANAGER;
-      multipop(R1,R2);
+      multipop(R1,R2,R3);
       [pgentry+iter*2] = -1;
-      [pgentry+iter*2+1] = "0000";
+      //[pgentry+iter*2+1] = "0000";
     else
       break;
     endif;
@@ -107,10 +107,10 @@ if(funcno == SWAP_OUT) then
   iter = 8;
 
   while(iter < 10) do
-    multipush(R1,R2,R3,R4,R5,R6,R7);
+    multipush(R1,R2,R3);
       R1=GET_SWAP_BLOCK;
       call MEMORY_MANAGER;
-    multipop(R1,R2,R3,R4,R5,R6,R7);
+    multipop(R1,R2,R3);
     [dentry+iter] = R0;
     multipush(R1,R2,R3,R4,R5,R6,R7);
       R1= DISK_STORE;
@@ -119,13 +119,13 @@ if(funcno == SWAP_OUT) then
       R4= R0;
       call DEVICE_MANAGER;
     multipop(R1,R2,R3,R4,R5,R6,R7);
-    multipush(R1,R2);
+    multipush(R1,R2,R3);
       R1= RELEASE_PAGE;
       R2= [pgentry+2*iter];
       call MEMORY_MANAGER;
-    multipop(R1,R2);
+    multipop(R1,R2,R3);
     [pgentry+iter*2] = -1;
-    [pgentry+iter*2+1] = "0000";
+    //[pgentry+iter*2+1] = "0000";
     iter =iter+1;
   endwhile;
   
@@ -149,7 +149,6 @@ if(funcno == SWAP_IN) then
     pentry = PROCESS_TABLE + iter*16;
     if([pentry+4] == READY && [pentry +6 ] == 1) then
       if([pentry] > maxtick) then
-        maxtick = [pentry];
         maxtickproc = iter;
       endif;
     endif;

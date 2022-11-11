@@ -41,6 +41,7 @@ begin
   endwhile;
 
   x=exposcall("Close", fp);
-  return 1;
+  breakpoint;
+  return 0;
 end
 }

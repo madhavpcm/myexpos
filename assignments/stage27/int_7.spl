@@ -43,12 +43,12 @@ if(filedesc != -2) then
     goto _return_;
   endif;
 
-  multipush( R1, R2, R3, R4, R5, R6, R7, R8);
+  multipush( R1, R2, R3, R4, R5, R6, R7, R8,R9,R10);
     R1=ACQUIRE_INODE;
     R3=cpid;
     R2=i;
     call RESOURCE_MANAGER;
-  multipop( R1, R2, R3, R4, R5, R6, R7, R8);
+  multipop( R1, R2, R3, R4, R5, R6, R7, R8,R9,R10);
 
   //file got deleted or something idk
   if(R0 == -1) then
@@ -111,6 +111,7 @@ if(filedesc != -2) then
     call RESOURCE_MANAGER;
 	multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
 
+  ret = [PTBR + (uptr-1)*2/512]*512 + (uptr-1) % 512;
   [ret] = 0;
   goto _return_;
 

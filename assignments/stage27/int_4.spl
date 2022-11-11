@@ -117,7 +117,6 @@ if( syscall == INT_DELETE) then
 
   //file isnt a data file
   if([ientry] != DATA) then
-    print "NotDataFile";
     [ret] = -1;
     goto _return_;
   endif;
@@ -127,7 +126,6 @@ if( syscall == INT_DELETE) then
     // and user aint root && the current user doesnt own this file
     //return
     if([centry + 3] != ROOT && [centry + 3] != [ientry+3]) then
-      print "NoPermission";
       [ret] = -1;
       goto _return_;
     endif;
@@ -141,18 +139,16 @@ if( syscall == INT_DELETE) then
     call RESOURCE_MANAGER;
   multipop(R1,R2,R3,R5,R7,R8,R14);
   
-  print "acquired";
   //if the file is open somewhere
   //dont delete it 
   if([FILE_STATUS_TABLE+ i*4+1] != -1) then
-    multipush(R1,R2,R3,R4);
+  multipush(R1,R2,R3,R5,R7,R8,R14);
       R1=RELEASE_INODE;
       R2=i;
       R3=[SYSTEM_STATUS_TABLE+1];
       call RESOURCE_MANAGER;
-    multipop(R1,R2,R3,R4);
+  multipop(R1,R2,R3,R5,R7,R8,R14);
 
-    print "FileOpenErr";
     [ret] = -2;
     goto _return_;
   endif;
@@ -169,12 +165,12 @@ if( syscall == INT_DELETE) then
     bentry = BUFFER_TABLE + (b%MAX_BUFFER)*4;
     if( b != -1 && [bentry] ==b && [bentry+1] ==1)then
       [bentry + 1] =0;
-      multipush(R1,R2,R3,R4);
+  multipush(R1,R2,R3,R5,R7,R8,R14);
         R1=RELEASE_BLOCK;
         R2=j;
         R3=[SYSTEM_STATUS_TABLE+1];
         call MEMORY_MANAGER;
-      multipop(R1,R2,R3,R4);
+  multipop(R1,R2,R3,R5,R7,R8,R14);
     endif;
     //if the disk block is loaded into a buffer
     //call release inode 
@@ -201,6 +197,7 @@ if( syscall == INT_DELETE) then
     j=j+1;
   endwhile;
 
+  [ret] = 0;
   multipush(R1,R2,R3,R5,R7,R8);
     R1=RELEASE_INODE;
     R2=i;
@@ -208,7 +205,6 @@ if( syscall == INT_DELETE) then
     call RESOURCE_MANAGER;
   multipop(R1,R2,R3,R5,R7,R8);
 
-  [ret] = 0;
 
 endif;
 

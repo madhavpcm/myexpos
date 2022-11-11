@@ -2,7 +2,7 @@
 alias funcNo R1;
 alias currPID R2;
 alias currEntry R5;
-alias iter R6;
+alias iter R4;
 
 currEntry = PROCESS_TABLE + currPID*16;
 // ACQUIRE semaphore
@@ -68,7 +68,6 @@ if( funcNo == ACQUIRE_TERMINAL) then
   // Set which proc is using terminal
   [TERMINAL_STATUS_TABLE + 1] = currPID;
 
-  R0 = 0;
   return;
 
 endif;
@@ -177,7 +176,6 @@ if ( funcNo == ACQUIRE_BUFFER) then
   alias pid R3;
 
   while([BUFFER_TABLE+buffno*4 + 2] != -1) do
-    breakpoint;
     [PROCESS_TABLE + pid * 16 + 4] = WAIT_BUFFER;
     [PROCESS_TABLE + pid * 16 + 5] = buffno;
 

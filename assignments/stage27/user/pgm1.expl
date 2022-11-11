@@ -54,6 +54,7 @@ begin
         temp=exposcall("Seek",fdread,offset);
 
         iter=0;
+        breakpoint;
         while(iter<100) do
             temp=exposcall("Read", fdread, data);
             temp=exposcall("Write", fdwrite, data);

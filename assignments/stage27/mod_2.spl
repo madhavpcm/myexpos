@@ -69,8 +69,6 @@ if(funcno == RELEASE_PAGE) then
   iter = iter + 1;
   endwhile;
 
-
-  R0=pageno;
   return;
 endif;
 

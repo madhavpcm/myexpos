@@ -16,6 +16,7 @@ syscall = [[PTBR + (uptr-5)*2/512]*512 + (uptr-5)%512];
 ret = [PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512;
 
 if(syscall == INT_OPEN) then
+  [centry+9] = INT_OPEN;
   //find free entry in resource table
   alias i R5;
   alias rentry R6;
@@ -89,6 +90,7 @@ if(syscall == INT_CLOSE) then
 endif;
 
 if(syscall == INT_SEEK) then
+  [centry+9] = INT_SEEK;
   alias filedesc R5;
   alias rentry R6;
   alias ofti R7;
@@ -111,13 +113,13 @@ if(syscall == INT_SEEK) then
   ofte = OPEN_FILE_TABLE + ofti*4 ;
   i= [ofte];
 
-  multipush( R1, R2, R3, R4, R5, R6, R7, R8, R9,R14);
+  multipush( R1, R2, R3, R4, R5, R6, R7, R8, R9,R10,R11,R14);
 
   R3 = cpid;
   R1 = ACQUIRE_INODE;
   R2 = i;
   call RESOURCE_MANAGER;
-  multipop( R1, R2, R3, R4, R5, R6, R7, R8, R9,R14);
+  multipop( R1, R2, R3, R4, R5, R6, R7, R8, R9,R10,R11,R14);
 
   //file got deleted or something idk
   if(R0 == -1) then
@@ -132,12 +134,12 @@ if(syscall == INT_SEEK) then
   endif;
 
   if([ofte+2] + offset < 0) then
-    multipush(R1,R2,R3,R4);
+    multipush(R1,R2,R3,R4,R11);
       R3= cpid;
       R1= RELEASE_INODE;
       R2= i;
       call RESOURCE_MANAGER;
-    multipop(R1,R2,R3,R4);
+    multipop(R1,R2,R3,R4,R11);
     [ret] = -2;
     goto _return_;
   endif;

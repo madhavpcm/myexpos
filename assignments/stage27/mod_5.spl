@@ -17,6 +17,7 @@ alias i R7;
 alias flag R8;
 alias pentry R9;
 alias newPID R10;
+alias loop R11;
 flag=0;
 
 if([SYSTEM_STATUS_TABLE+5] != 0) then
@@ -30,11 +31,13 @@ if([SYSTEM_STATUS_TABLE+5] != 0) then
   endif;
 else
   i =(1+currPID )% 16;
+  loop =0;
   //pentry = PROCESS_TABLE + i*16 
-  while(i != currPID)do  
+  while(loop < 16)do  
     pentry = PROCESS_TABLE + i*16 ;
     if( i == IDLE_PROCESS || i == SWAPPER_DAEMON) then
       i=(i+1)%16;
+      loop=loop+1;
       continue;
     endif;
     if( [pentry+6] != 1 ) then
@@ -45,6 +48,7 @@ else
       endif;
     endif;
     i=(i+1)%16;
+    loop=loop+1;
   endwhile; 
 endif;
  

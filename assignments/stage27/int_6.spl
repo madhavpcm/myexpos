@@ -44,12 +44,12 @@ if(filedesc != -1) then
   i = [OPEN_FILE_TABLE + ofti*4];
 
 //acquire lock
-  multipush(R1,R2,R3,R4,R5,R6,R7,R8);
+  multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
     R1= ACQUIRE_INODE;
     R3 = cpid;
     R2= i;
     call RESOURCE_MANAGER;
-  multipop(R1,R2,R3,R4,R5,R6,R7,R8);
+  multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
   ret=[PTBR + (uptr-1)*2/ 512]*512 + (uptr-1)%512;
 
 //file got deleted
@@ -87,12 +87,12 @@ if(filedesc != -1) then
   else
     //again, end of file
     if([lseek] == [INODE_TABLE + i*16 + 2]) then
-      multipush(R1,R2,R3,R4);
+      multipush(R1,R2,R3,R4,R5);
         R1= RELEASE_INODE;
         R3= cpid;
         R2= i;
         call RESOURCE_MANAGER;
-      multipop(R1,R2,R3,R4);
+      multipop(R1,R2,R3,R4,R5);
     ret=[PTBR + (uptr-1)*2/ 512]*512 + (uptr-1)%512;
   //return -2
       [ret] = -2;
@@ -126,7 +126,6 @@ if(filedesc != -1) then
   multipop(R1,R2,R3,R4);
 
 
-  [ret] = 0;
   goto _return_;
 
 
@@ -135,14 +134,14 @@ else
     alias word R5; 
     //virtual address of word
     word = [([PTBR +(uptr-3)*2/512])*512 + (uptr-3)%512];
-    multipush(R0,R1,R2,R3,R4);
+    multipush(R0,R1,R2,R3,R4,R5);
 
       R1 = TERMINAL_READ;  
       R2 = [SYSTEM_STATUS_TABLE+1];
       R3 = word;
       call MOD_4;
 
-    multipop(R0,R1,R2,R3,R4);
+    multipop(R0,R1,R2,R3,R4,R5);
 
     alias retaddr R6;
     retaddr = ([PTBR + (uptr-1)*2/ 512])*512 + (uptr-1)%512;

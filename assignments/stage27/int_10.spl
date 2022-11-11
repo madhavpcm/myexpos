@@ -24,16 +24,4 @@ call PROCESS_MANAGER;
 multipop(R12);
 
 //Find another process to replace
-i=(currPID+1)%16;
-flag=0;
-
-while(i != currPID) do
-  if(i != 0 && [PROCESS_TABLE + i*16 + 4] != TERMINATED) then
-    multipush(R9);
-    call SCHEDULER;
-    multipop(R9);
-  endif;
-  i=(i+1)%16;
-endwhile;
-
-halt;
+call SCHEDULER;

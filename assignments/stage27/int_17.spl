@@ -48,7 +48,6 @@ syscall = [[PTBR + (uptr-5)*2/512]*512 + (uptr-5)%512];
 
   encrypt R7;
 
-  breakpoint;
   if([USER_TABLE + ui*2 +1] != R7) then
     [ret]=-1;
     goto _return_;
@@ -62,7 +61,6 @@ syscall = [[PTBR + (uptr-5)*2/512]*512 + (uptr-5)%512];
 
   [SYSTEM_STATUS_TABLE] = ui;
 
-  breakpoint;
   multipush( R1, R2, R3, R4, R5, R6, R7, R8);
   
   call SCHEDULER;

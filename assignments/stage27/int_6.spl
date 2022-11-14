@@ -63,7 +63,6 @@ if(filedesc != -1) then
   //virtual address of word
   word = [[PTBR +(uptr-3)*2/512]*512 + (uptr-3)%512];
   //physical address of word
-  word = [PTBR + (word)*2/ 512]*512 + (word)%512;
 
   if(i == INODE_ROOT) then
     //if inode-root then we can directly access from memroy copy of inoderoot
@@ -82,6 +81,7 @@ if(filedesc != -1) then
     endif;
 
     //read the word at lseek
+  word = [PTBR + (word)*2/ 512]*512 + (word)%512;
     [word] = [ROOT_FILE +[lseek]];
     //increment lseek
   else

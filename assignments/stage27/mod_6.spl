@@ -149,6 +149,7 @@ if(funcno == SWAP_IN) then
     pentry = PROCESS_TABLE + iter*16;
     if([pentry+4] == READY && [pentry +6 ] == 1) then
       if([pentry] > maxtick) then
+        maxtick = [pentry];
         maxtickproc = iter;
       endif;
     endif;

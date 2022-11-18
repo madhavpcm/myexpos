@@ -1,0 +1,128 @@
+load --module 0 /home/madhavpcm/myexpos/assignments/stage27/mod_0.xsm
+load --module 1 /home/madhavpcm/myexpos/assignments/stage27/mod_1.xsm
+load --module 2 /home/madhavpcm/myexpos/assignments/stage27/mod_2.xsm
+load --module 3 /home/madhavpcm/myexpos/assignments/stage27/mod_3.xsm
+load --module 4 /home/madhavpcm/myexpos/assignments/stage27/mod_4.xsm
+load --module 5 /home/madhavpcm/myexpos/assignments/stage27/mod_5.xsm
+load --module 6 /home/madhavpcm/myexpos/assignments/stage27/mod_6.xsm
+load --module 7 /home/madhavpcm/myexpos/assignments/stage27/mod_7.xsm
+load --int=10 /home/madhavpcm/myexpos/assignments/stage27/int_10.xsm
+load --int=11 /home/madhavpcm/myexpos/assignments/stage27/int_11.xsm
+load --int=12 /home/madhavpcm/myexpos/assignments/stage27/int_12.xsm
+load --int=13 /home/madhavpcm/myexpos/assignments/stage27/int_13.xsm
+load --int=14 /home/madhavpcm/myexpos/assignments/stage27/int_14.xsm
+load --int=15 /home/madhavpcm/myexpos/assignments/stage27/int_15.xsm
+load --int=16 /home/madhavpcm/myexpos/assignments/stage27/int_16.xsm
+load --int=17 /home/madhavpcm/myexpos/assignments/stage27/int_17.xsm
+load --int=4 /home/madhavpcm/myexpos/assignments/stage27/int_4.xsm
+load --int=5 /home/madhavpcm/myexpos/assignments/stage27/int_5.xsm
+load --int=6 /home/madhavpcm/myexpos/assignments/stage27/int_6.xsm
+load --int=7 /home/madhavpcm/myexpos/assignments/stage27/int_7.xsm
+load --int=8 /home/madhavpcm/myexpos/assignments/stage27/int_8.xsm
+load --int=9 /home/madhavpcm/myexpos/assignments/stage27/int_9.xsm
+load --os /home/madhavpcm/myexpos/assignments/stage27/osloader.xsm
+load --int=disk /home/madhavpcm/myexpos/assignments/stage27/disk.xsm
+load --int=console /home/madhavpcm/myexpos/assignments/stage27/console.xsm
+load --int=timer /home/madhavpcm/myexpos/assignments/stage27/timer.xsm
+load --exhandler /home/madhavpcm/myexpos/assignments/stage27/exhandler.xsm
+load --library /home/madhavpcm/myexpos/expl/library.lib
+rm 1100r.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/1100r.xsm
+rm 2513r.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/2513r.xsm
+rm cat.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/cat.xsm
+rm cp.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/cp.xsm
+rm create.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/create.xsm
+rm delete.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/delete.xsm
+load --idle /home/madhavpcm/myexpos/assignments/stage27/user/idle.xsm
+load --init /home/madhavpcm/myexpos/assignments/stage27/user/init.xsm
+rm ls.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/ls.xsm
+rm lu.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/lu.xsm
+rm merge1.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/merge1.xsm
+rm merge2.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/merge2.xsm
+rm pcp.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/pcp.xsm
+rm read.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/read.xsm
+rm rm.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/rm.xsm
+rm ru.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/ru.xsm
+load --shell /home/madhavpcm/myexpos/assignments/stage27/user/shell.xsm
+rm test15.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/test15.xsm
+rm test5.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/test5.xsm
+rm test6.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/test6.xsm
+rm write.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/write.xsm
+dump --inodeusertable
+rm 1100r.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/1100r.xsm
+rm 2513r.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/2513r.xsm
+rm cat.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/cat.xsm
+rm cp.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/cp.xsm
+rm create.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/create.xsm
+rm delete.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/delete.xsm
+rm fork4.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/fork4.xsm
+load --idle /home/madhavpcm/myexpos/assignments/stage27/user/idle.xsm
+load --init /home/madhavpcm/myexpos/assignments/stage27/user/init.xsm
+rm ls.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/ls.xsm
+rm lu.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/lu.xsm
+rm m_sort.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/m_sort.xsm
+rm m_store.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/m_store.xsm
+rm merge.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/merge.xsm
+rm merge1.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/merge1.xsm
+rm merge2.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/merge2.xsm
+rm pcp.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/pcp.xsm
+rm pgm1.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/pgm1.xsm
+rm pgm2.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/pgm2.xsm
+rm pid.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/pid.xsm
+rm read.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/read.xsm
+rm rm.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/rm.xsm
+rm ru.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/ru.xsm
+load --shell /home/madhavpcm/myexpos/assignments/stage27/user/shell.xsm
+rm test11.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/test11.xsm
+rm test15.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/test15.xsm
+rm test5.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/test5.xsm
+rm test6.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/test6.xsm
+rm test8.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/test8.xsm
+rm test9.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/test9.xsm
+rm write.xsm
+load --exec /home/madhavpcm/myexpos/assignments/stage27/user/write.xsm
+dump --inodeusertable

@@ -1,0 +1,116 @@
+//module 7 (BOOT_MODULE)
+loadi(54, 67);
+loadi(55, 68);
+
+//Secondary core os startup
+loadi(128,512);
+
+SP = 82*512-1;
+call BOOT_MODULE;
+
+PTBR=PAGE_TABLE_BASE + IDLE_PROCESS*20;
+PTLR=10;
+alias iter R1;
+iter =0;
+while(iter < 10) do
+  [PTBR+iter*2] = -1;
+  [PTBR+iter*2+1] = "0000";
+  iter=iter+1;
+endwhile;
+//code
+[PTBR+8]=69;
+[PTBR+9]="0100";
+//stack
+[PTBR+16]=70 ;
+[PTBR+17]="0110";
+
+//process table idle
+//idle
+alias idle_process_table R6;
+idle_process_table = PROCESS_TABLE;
+[idle_process_table  ] = 0;
+[idle_process_table +  1] = 0;
+[idle_process_table +  4] = RUNNING;
+[idle_process_table +  11] = 76;
+[idle_process_table +  12] = 0;
+[idle_process_table +  13] = 8*512;
+[idle_process_table +  14] = PTBR;
+[idle_process_table +  15] = PTLR;
+[70*512] =[69*512 + 1];
+
+PTBR=PAGE_TABLE_BASE + SWAPPER_DAEMON*20;
+PTLR=10;
+iter =0;
+while(iter < 10) do
+  [PTBR+iter*2] = -1;
+  [PTBR+iter*2+1] = "0000";
+  iter=iter+1;
+endwhile;
+//code
+[PTBR+8]=69;
+[PTBR+9]="0100";
+//stack
+[PTBR+16]=81;
+[PTBR+17]="0110";
+
+alias swapper_process_table R6;
+
+swapper_process_table = PROCESS_TABLE + SWAPPER_DAEMON*16;
+[swapper_process_table ] = 0;
+[swapper_process_table + 1] = SWAPPER_DAEMON;
+[swapper_process_table + 4] = CREATED;
+[swapper_process_table + 11] = 82;
+[swapper_process_table + 12] = 0;
+[swapper_process_table + 13] = 8*512;
+[swapper_process_table + 14] = PTBR;
+[swapper_process_table + 15] = PTLR;
+[81*512] =[69*512 + 1];
+
+PTBR=PAGE_TABLE_BASE + IDLE2_PROCESS*20;
+PTLR=10;
+iter =0;
+while(iter < 10) do
+  [PTBR+iter*2] = -1;
+  [PTBR+iter*2+1] = "0000";
+  iter=iter+1;
+endwhile;
+//code
+[PTBR+8]=69;
+[PTBR+9]="0100";
+//stack
+[PTBR+16]=83;
+[PTBR+17]="0110";
+
+//process table idle
+//idle
+alias idle_process_table R6;
+idle_process_table = PROCESS_TABLE + IDLE2_PROCESS*16;
+[idle_process_table  ] = 0;
+[idle_process_table +  1] = IDLE2_PROCESS;
+[idle_process_table + 3] = KERNEL;
+[idle_process_table +  4] = RUNNING;
+[idle_process_table +  11] = 84;
+[idle_process_table +  12] = 0;
+[idle_process_table +  13] = 8*512;
+[idle_process_table +  14] = PTBR;
+[idle_process_table +  15] = PTLR;
+
+//first core pid
+[SYSTEM_STATUS_TABLE + 1]  = IDLE_PROCESS;
+//2nd core pid
+[SYSTEM_STATUS_TABLE + 6]  = IDLE2_PROCESS;
+//logout status
+[SYSTEM_STATUS_TABLE + 7]  = 0;
+
+//access vars
+[KERN_LOCK] = 0;
+[SCHED_LOCK] = 0;
+
+PTBR=PAGE_TABLE_BASE;
+PTLR=10; 
+SP=8*512;
+start;
+breakpoint;
+ireturn;
+//DISK
+//

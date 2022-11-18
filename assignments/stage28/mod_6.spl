@@ -1,0 +1,218 @@
+alias funcno R1;
+alias pid R2;
+
+if(funcno == SWAP_OUT) then
+  alias iter R3;
+  alias pentry R4;
+  alias proc R5;
+  alias maxtick R6;
+  alias maxtickproc R7;
+
+  iter = 3;
+  proc = -1;
+  maxtick =-1;
+  maxtickproc =-1;
+  while(iter < SWAPPER_DAEMON) do
+    pentry = PROCESS_TABLE + iter * 16;
+
+    if([pentry + 6] != 1) then
+      //if WAIT_PROCESS is there get this
+      if([pentry + 4] == WAIT_PROCESS) then
+        proc = iter;
+        break;
+      endif;
+
+    // else if no wait process recieved and semaphore is recieved
+      if(proc == -1 && [pentry+4]== WAIT_SEMAPHORE && [pentry +6] != 1) then
+        proc = iter;
+      endif;
+
+      if(proc == -1 && [pentry+4] != RUNNING && [pentry+4] != TERMINATED && [pentry+4] != ALLOCATED && [pentry] > maxtick && [pentry+6] !=1) then
+        maxtick = [pentry];
+        maxtickproc = iter;
+      endif;
+
+    endif;
+    iter = iter +1;
+  endwhile;
+
+  if(proc == -1 && maxtickproc == -1) then
+    [SYSTEM_STATUS_TABLE + 5] = 0;
+    return;
+  endif;
+
+
+  if(proc == -1) then
+    if(maxtickproc == IDLE2_PROCESS) then
+      [SYSTEM_STATUS_TABLE + 5] = 0;
+      return;
+    endif;
+    proc = maxtickproc;
+  endif;
+
+  alias pgentry R6;
+
+  pentry = PROCESS_TABLE + proc*16;
+  //reset tick
+  [pentry] =0;
+
+  pgentry = PAGE_TABLE_BASE + proc * 20;
+  iter =4;
+  while(iter < 8) do
+    if([pgentry + iter*2] == -1) then
+      break;
+    else
+      multipush(R1,R2,R3);
+        R1= RELEASE_PAGE;
+        R2= [pgentry + iter*2];
+        call MEMORY_MANAGER;
+      multipop(R1,R2,R3);
+
+      [pgentry + iter*2] = -1;
+      [pgentry + iter*2+1] ="0000";
+    endif;
+    iter = iter +1;
+  endwhile;
+
+  alias dentry R7;
+  dentry = DISK_MAP_TABLE + proc*10;
+  iter = 2;
+  while( iter < 4) do
+    if([pgentry+iter*2] != - 1 && [MEMORY_FREE_LIST + [pgentry + iter*2]] == 1) then
+      //get a swap area block from disk
+      multipush(R1,R2,R3);
+        R1=GET_SWAP_BLOCK;
+        call MEMORY_MANAGER;
+      multipop(R1,R2,R3);
+
+      [dentry+iter] = R0;
+
+      //save the block to the disk
+      multipush(R1,R2,R3,R4,R5,R6,R7);
+        R1= DISK_STORE;
+        R2= SWAPPER_DAEMON;
+        R3= [pgentry+iter*2];
+        R4= R0;
+        call DEVICE_MANAGER;
+      multipop(R1,R2,R3,R4,R5,R6,R7);
+      multipush(R1,R2,R3);
+        R1= RELEASE_PAGE;
+        R2= [pgentry+iter*2];
+        call MEMORY_MANAGER;
+      multipop(R1,R2,R3);
+      [pgentry+iter*2] = -1;
+      //[pgentry+iter*2+1] = "0000";
+    else
+      break;
+    endif;
+    iter = iter +1;
+  endwhile;
+
+  iter = 8;
+
+  while(iter < 10) do
+    multipush(R1,R2,R3);
+      R1=GET_SWAP_BLOCK;
+      call MEMORY_MANAGER;
+    multipop(R1,R2,R3);
+    [dentry+iter] = R0;
+    multipush(R1,R2,R3,R4,R5,R6,R7);
+      R1= DISK_STORE;
+      R2= SWAPPER_DAEMON;
+      R3= [pgentry+iter*2];
+      R4= R0;
+      call DEVICE_MANAGER;
+    multipop(R1,R2,R3,R4,R5,R6,R7);
+    multipush(R1,R2,R3);
+      R1= RELEASE_PAGE;
+      R2= [pgentry+2*iter];
+      call MEMORY_MANAGER;
+    multipop(R1,R2,R3);
+    [pgentry+iter*2] = -1;
+    //[pgentry+iter*2+1] = "0000";
+    iter =iter+1;
+  endwhile;
+  
+  [pentry +6] = 1;
+  [SYSTEM_STATUS_TABLE+4] = [SYSTEM_STATUS_TABLE+4]+1;
+  [SYSTEM_STATUS_TABLE+5]=0;
+  return;
+endif;
+
+if(funcno == SWAP_IN) then
+  alias iter R3;
+  alias pentry R4;
+  alias proc R5;
+  alias maxtick R6;
+  alias maxtickproc R7;
+
+  maxtick = -1;
+  maxtickproc = -1;
+  iter =3;
+  while( iter < SWAPPER_DAEMON) do
+    pentry = PROCESS_TABLE + iter*16;
+    if([pentry+4] == READY && [pentry +6 ] == 1) then
+      if([pentry] > maxtick) then
+        maxtick = [pentry];
+        maxtickproc = iter;
+      endif;
+    endif;
+    iter = iter +1;
+  endwhile;
+
+  if(maxtickproc == -1) then
+    [SYSTEM_STATUS_TABLE +5] =0;
+    return;
+  endif;
+
+  [PROCESS_TABLE+maxtickproc*16]=0;
+  multipush(R7);
+
+  iter =2;
+  alias dentry R6;
+  alias pgentry R4;
+  pgentry = PAGE_TABLE_BASE+ maxtickproc*20;
+  dentry = DISK_MAP_TABLE + maxtickproc*10;
+  while(iter < 10)do
+    if( (iter < 4 || iter > 7) && [dentry+iter] != -1) then
+      multipush(R4);
+      multipush(R3,R6);
+        R1= GET_FREE_PAGE;
+        call MEMORY_MANAGER;
+      multipop(R3,R6);
+      multipush(R0);
+
+      multipush(R3,R6);
+      R1= DISK_LOAD;
+      R2= SWAPPER_DAEMON;
+      R4=[dentry+iter];
+      R3=R0;
+      call DEVICE_MANAGER;
+
+      R1=RELEASE_BLOCK;
+      R2=R4;
+      R3=SWAPPER_DAEMON;
+      call MEMORY_MANAGER;
+
+      multipop(R3,R6);
+
+      multipop(R0);
+      multipop(R4);
+      breakpoint;
+      [pgentry + 2*iter]  = R0;
+      [pgentry + 2*iter+1]  = "0110";
+
+    endif;
+    inline "ADD R3,1";
+  endwhile;
+  multipop(R7);
+  [PROCESS_TABLE + maxtickproc*16 +6]=0;
+  [SYSTEM_STATUS_TABLE+4] = [SYSTEM_STATUS_TABLE+4]-1;
+  [SYSTEM_STATUS_TABLE+5]=0;
+
+
+  //pentry = PROCESS_TABLE + maxtickproc*16;
+//reset tick
+  //[pentry] = 0;
+  return;
+endif;

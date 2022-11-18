@@ -1,0 +1,44 @@
+int main()
+{
+	decl
+		int temp, fileDescriptor, fileRet;
+		str username, fileOwner;
+		int fileName, deleteFlag;
+	enddecl
+	begin
+		temp = exposcall("Write", -2, "Enter username");
+		temp = exposcall("Read", -1, username);
+		
+		deleteFlag = 1;
+
+		fileDescriptor = exposcall("Open", "root");
+
+		fileRet = 0;
+		while(fileRet != -2) do
+			fileRet = exposcall("Read", fileDescriptor, fileName);
+		 	if(fileName != -1) then
+				temp = exposcall("Seek", fileDescriptor, 2);
+				temp = exposcall("Read", fileDescriptor, fileOwner);
+				if(fileOwner == username) then
+					temp = exposcall("Delete", fileName);
+					if(temp != 0) then
+						deleteFlag = 0;
+						break;
+					endif;
+				endif;
+				temp = exposcall("Seek", fileDescriptor, 4);
+			
+			else
+				temp = exposcall("Seek", fileDescriptor, 7);
+			endif;
+		endwhile;
+
+		
+		if(deleteFlag == 1) then
+			temp = exposcall("Write", -2, "Deleted!");
+		else
+			temp = exposcall("Write", -2, "Failed!");
+		endif;
+		return 0;
+	end
+}

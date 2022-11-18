@@ -1,0 +1,185 @@
+//Open and Close syscalls
+alias  cpid  R1 ; 
+alias  centry R2;
+alias  uptr  R3;
+alias ret R14;
+
+cpid = [SYSTEM_STATUS_TABLE+5*CORE + 1];
+centry = PROCESS_TABLE + cpid *16;
+
+//Switch stacks
+[centry + 13] = SP;
+uptr = SP;
+SP = [centry + 11] * 512 - 1;
+
+multipush(R1,R2);
+R1=ACQUIRE_KERN_LOCK;
+call MOD_8;
+multipop(R1,R2);
+
+
+alias syscall R4;
+syscall = [[PTBR + (uptr-5)*2/512]*512 + (uptr-5)%512];
+ret = [PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512;
+
+if(syscall == INT_OPEN) then
+  [centry+9] = INT_OPEN;
+  //find free entry in resource table
+  alias i R5;
+  alias rentry R6;
+   rentry=[centry + 11]*512 + RESOURCE_TABLE_OFFSET;
+   i=0;
+   //loop thru resource table
+  while( i < 8) do
+    if([rentry + 2*i] == -1 ) then
+      break;
+    endif;
+    i=i+1;    
+  endwhile;
+  
+  //if no free entries in resource table
+  if(i == 8) then
+    [ret] = -3;
+    goto _return_;
+  endif;
+  //call open function in file manager;
+  multipush(R1,R2,R3,R4,R5,R6,R14,R10);
+    R1=OPEN;
+    //filename
+    R2=[[PTBR + (uptr-4)*2/512]*512 + (uptr-4)%512];
+    call FILE_MANAGER;
+  multipop(R1,R2,R3,R4,R5,R6,R14,R10);
+  
+  //return if error
+  if(R0 == -1 || R0 == -2) then
+    [ret] = R0;
+    goto _return_;
+  endif;
+
+  //occupy the resource table
+  [rentry + 2*i ] = FILE;
+  [rentry + 2*i + 1] = R0;
+
+  //return resource table index
+  [ret] = i;
+  goto _return_;
+endif;
+
+if(syscall == INT_CLOSE) then
+  [centry + 9] = INT_CLOSE;
+  alias filedesc R5;
+  alias rentry R6;
+  alias ofti R7;
+
+  filedesc = [[PTBR + (uptr-4)*2/512]*512 + (uptr-4)%512];
+  rentry=[centry + 11]*512 + RESOURCE_TABLE_OFFSET;
+
+//filedesc/ resource table index is not valid
+  if(filedesc < 0 || filedesc > 7 || [rentry + 2*filedesc] != FILE) then
+    [ret] = -1;
+    goto _return_;
+  endif;
+
+  //get open file table index of the file
+  ofti = [rentry + 2*filedesc + 1];
+
+  multipush(R1,R2,R3,R4,R5,R6,R7,R10,R14);
+    R1=CLOSE;
+    //open file table index
+    R2=ofti;
+    call FILE_MANAGER;
+  multipop(R1,R2,R3,R4,R5,R6,R7,R10,R14);
+
+  [rentry + 2*filedesc] = -1;
+  
+  [ret] = 0;
+  goto _return_;
+endif;
+
+if(syscall == INT_SEEK) then
+  [centry+9] = INT_SEEK;
+  alias filedesc R5;
+  alias rentry R6;
+  alias ofti R7;
+  alias ofte R8;
+  alias i R9;
+  alias filesize R10;
+  alias offset R11;
+
+  filedesc = [[PTBR + (uptr-4)*2/512]*512 + (uptr-4)%512];
+  offset = [[PTBR + (uptr-3)*2/512]*512 + (uptr-3)%512];
+  rentry=[centry + 11]*512 + RESOURCE_TABLE_OFFSET;
+
+  //invalid resource table entry 
+  if(filedesc < 0 || filedesc > 7 || [rentry + 2*filedesc] != FILE) then
+    [ret] = -1;
+    goto _return_;
+  endif;
+
+  ofti = [rentry + filedesc * 2 + 1];
+  ofte = OPEN_FILE_TABLE + ofti*4 ;
+  i= [ofte];
+
+  multipush( R1, R2, R3, R4, R5, R6, R7, R8, R9,R10,R11,R14);
+
+  R3 = cpid;
+  R1 = ACQUIRE_INODE;
+  R2 = i;
+  call RESOURCE_MANAGER;
+  multipop( R1, R2, R3, R4, R5, R6, R7, R8, R9,R10,R11,R14);
+
+  //file got deleted or something idk
+  if(R0 == -1) then
+    [ret] = -1;
+    goto _return_;
+  endif;
+//get file size 
+  if(i == INODE_ROOT) then
+    filesize = 480;
+  else
+    filesize =  [INODE_TABLE + i* 16  +2];
+  endif;
+
+  if([ofte+2] + offset < 0) then
+    multipush(R1,R2,R3,R4,R11);
+      R3= cpid;
+      R1= RELEASE_INODE;
+      R2= i;
+      call RESOURCE_MANAGER;
+    multipop(R1,R2,R3,R4,R11);
+    [ret] = -2;
+    goto _return_;
+  endif;
+
+  if(offset == 0) then
+    [ofte+2] = 0;
+  else
+    if([ofte+2]+offset > filesize) then
+      [ofte+2] = filesize;
+    else
+      [ofte+2] = [ofte+2]+offset;
+    endif;
+  endif;
+
+  multipush(R1,R2,R3,R4);
+    R3= cpid;
+    R1= RELEASE_INODE;
+    R2= i;
+    call RESOURCE_MANAGER;
+  multipop(R1,R2,R3,R4);
+  [ret] = 0;
+  goto _return_;
+endif;
+
+
+_return_:
+multipush(R1,R2);
+R1=RELEASE_LOCK;
+R2=KERN_LOCK;
+call MOD_8;
+multipop(R1,R2);
+[centry + 9] =0;
+SP = uptr;
+ireturn;
+
+

@@ -1,0 +1,34 @@
+//EXIT
+alias i R9;
+alias flag R10;
+alias offset R11 ;
+alias currPID R12 ;
+alias uptr R13;
+//Set some dying words 
+
+currPID = [SYSTEM_STATUS_TABLE+5*CORE+ 1];
+[PROCESS_TABLE + currPID * 16 + 9] = INT_EXIT;
+[PROCESS_TABLE + currPID * 16 + 4] = TERMINATED;
+
+//Switch Stacks
+[PROCESS_TABLE + currPID*16 + 13] = SP;
+uptr = SP ; 
+SP = [PROCESS_TABLE + currPID*16 + 11]*512 - 1;
+
+R1=ACQUIRE_KERN_LOCK;
+call MOD_8;
+//F to pay respects
+multipush(R12);
+
+R1 = EXIT_PROCESS;
+R2 = [SYSTEM_STATUS_TABLE+5*CORE+1];
+call PROCESS_MANAGER;
+
+multipop(R12);
+
+R1=RELEASE_LOCK;
+R2=KERN_LOCK;
+call MOD_8;
+
+//Find another process to replace
+call SCHEDULER;

@@ -1,0 +1,265 @@
+// Resource Manager module
+alias funcNo R1;
+alias currPID R2;
+alias currEntry R5;
+alias iter R4;
+
+currEntry = PROCESS_TABLE + currPID*16;
+// ACQUIRE semaphore and release semaphore
+//codes are taken from hadif, i was testing out some errors and was having some doubts
+//in my own code
+if (funcNo == ACQUIRE_SEMAPHORE) then
+    // acquire semaphore
+    alias i R4;
+    alias n R3;
+    i = SEMAPHORE_TABLE + 1;
+    n = SEMAPHORE_TABLE + 128;
+    while (i < n) do
+        if ([i]==0) then
+            [i] = 1;
+            [i-1] = -1;
+            R0 = (i - SEMAPHORE_TABLE - 1)/4;
+            return;
+        endif;
+        i = i + 4;
+    endwhile;
+    R0 = -1;
+    return;
+endif;
+
+if (funcNo== RELEASE_SEMAPHORE) then
+    alias semid R3;
+    alias sentry R4;
+    sentry = SEMAPHORE_TABLE + semid*4;
+    if ([sentry]==currPID) then
+        [sentry] = -1;
+        alias i R5;
+        i = PROCESS_TABLE + 20;
+        while (i<PROCESS_TABLE+256) do
+            if ([i]==WAIT_SEMAPHORE && [i+1]==semid) then
+                [i] = READY;
+            endif;
+            i = i + 16;
+        endwhile;
+    else
+        if ([sentry]!=-1 || [sentry+1]==0) then
+            R0 = -1;
+            return;
+        endif;
+    endif;
+    [sentry+1] = [sentry+1] - 1;
+    R0 = 0;
+    return;
+endif;
+// Acquire terminal function
+if( funcNo == ACQUIRE_TERMINAL) then
+
+  // If terminal is occupied loop 
+  while([TERMINAL_STATUS_TABLE] == 1) do
+    // Set status to wait_terminal
+    [currEntry + 4] = WAIT_TERMINAL;
+    multipush(R1,R2);
+    R1=RELEASE_LOCK;
+    R2=KERN_LOCK;
+    call MOD_8;
+    multipop(R1,R2);
+
+    multipush(R0,R1,R2,R3,R5);
+    //Schedule something else until terminal is free
+    call SCHEDULER;
+    multipop(R0,R1,R2,R3,R5);
+
+    multipush(R1,R2);
+    R1=ACQUIRE_KERN_LOCK;
+    call MOD_8;
+    multipop(R1,R2);
+
+  endwhile;
+
+  //Acquire the terminal
+  [TERMINAL_STATUS_TABLE] =1;
+  // Set which proc is using terminal
+  [TERMINAL_STATUS_TABLE + 1] = currPID;
+
+  return;
+
+endif;
+// Release terminal function
+if( funcNo == RELEASE_TERMINAL) then
+  // Only the process which acquired can release
+  if( [TERMINAL_STATUS_TABLE +1 ] != currPID) then
+    R0 = -1;
+    return;
+  else
+    //Release it
+    [TERMINAL_STATUS_TABLE] = 0;
+    iter=0;
+
+    //Loop through all processes
+    while(iter < 16) do 
+      currEntry = PROCESS_TABLE + iter*16;
+      if([currEntry + 4] == WAIT_TERMINAL) then
+        //Set all processes waiting for terminal to ready
+        [currEntry + 4] = READY;
+      endif;
+      iter=iter+1;
+    endwhile;
+
+    R0 = 0;
+    return;
+  endif;
+
+endif;
+//error
+
+//Acquire disk
+if (funcNo == ACQUIRE_DISK) then
+  
+  //If disk is busy schedule to something else
+  while( [DISK_STATUS_TABLE ] == 1) do 
+    //Set current disk status to wait_disk
+    [currEntry + 4] = WAIT_DISK;
+    multipush(R1,R2);
+    R1=RELEASE_LOCK;
+    R2=KERN_LOCK;
+    call MOD_8;
+    multipop(R1,R2);
+
+    multipush(R1,R2,R3,R4,R5);
+    call SCHEDULER;
+    multipop(R1,R2,R3,R4,R5);
+
+    multipush(R1,R2);
+    R1=ACQUIRE_KERN_LOCK;
+    call MOD_8;
+    multipop(R1,R2);
+
+  endwhile;
+
+  //Acquire the disk
+  [DISK_STATUS_TABLE] = 1;
+  //Set which process is using disk now
+  [DISK_STATUS_TABLE + 4] = currPID;
+
+  return;
+    
+endif;
+//error
+if (funcNo == ACQUIRE_INODE) then
+  alias inode R2;
+  alias cpid R3;
+
+//  while this inode is locked schedule something else
+  while([FILE_STATUS_TABLE + inode*4] != -1) do
+    [PROCESS_TABLE + cpid* 16 + 4] = WAIT_FILE;
+    [PROCESS_TABLE + cpid* 16 + 5] = inode;
+    multipush(R1,R2);
+    R1=RELEASE_LOCK;
+    R2=KERN_LOCK;
+    call MOD_8;
+    multipop(R1,R2);
+
+    multipush(R1,R2,R3);
+      call SCHEDULER;
+    multipop(R1,R2,R3);
+
+    multipush(R1,R2);
+    R1=ACQUIRE_KERN_LOCK;
+    call MOD_8;
+    multipop(R1,R2);
+
+  endwhile;
+
+  //return -1 if the file was deleted before acquirng
+  if([INODE_TABLE + inode*16 +1 ] == -1)then
+    R0=-1;
+    return;
+  endif;
+
+  [FILE_STATUS_TABLE + inode*4] = cpid;
+  R0=0;
+  return;
+endif;
+
+if( funcNo == RELEASE_INODE) then
+  alias inode R2;
+  alias cpid R3;
+  
+  //if inode wrong process tries to unlock
+  if([FILE_STATUS_TABLE + inode*4] != cpid) then
+    R0=-1;
+    return;
+  endif;
+
+  alias i R4;
+  
+  [FILE_STATUS_TABLE + inode*4] = -1;
+  i=0;
+  while(i < 16) do
+    if([PROCESS_TABLE + i*16 +4] == WAIT_FILE && [PROCESS_TABLE + i*16 +5] == inode )then
+      [PROCESS_TABLE + i *16 + 4] = READY;
+    endif;
+    i=i+1;
+  endwhile;
+  
+  R0=0;
+  return;
+endif;
+
+if ( funcNo == ACQUIRE_BUFFER) then
+  //buff no
+  alias buffno R2;
+  //pid
+  alias pid R3;
+
+  while([BUFFER_TABLE+buffno*4 + 2] != -1) do
+    [PROCESS_TABLE + pid * 16 + 4] = WAIT_BUFFER;
+    [PROCESS_TABLE + pid * 16 + 5] = buffno;
+    multipush(R1,R2);
+    R1=RELEASE_LOCK;
+    R2=KERN_LOCK;
+    call MOD_8;
+    multipop(R1,R2);
+
+
+    multipush(R2,R3);
+      call SCHEDULER;
+    multipop(R2,R3);
+
+    multipush(R1,R2);
+    R1=ACQUIRE_KERN_LOCK;
+    call MOD_8;
+    multipop(R1,R2);
+
+  endwhile;
+
+  [BUFFER_TABLE+buffno*4+2] = pid;
+  return;
+endif;
+
+if ( funcNo == RELEASE_BUFFER) then
+  //buff no
+  alias buff R2;
+  alias pid R3;
+  //pid
+  if(pid != [BUFFER_TABLE+buff*4 + 2])then
+    R0=-1;
+    return;
+  endif;
+
+  [BUFFER_TABLE+buff*4 + 2] = -1;
+
+  alias i R4;
+  i=0;
+  while(i < 16) do
+    if([PROCESS_TABLE + i*16 +4] == WAIT_BUFFER && [PROCESS_TABLE + i*16 +5] == buff)then
+      [PROCESS_TABLE + i *16 + 4] = READY;
+    endif;
+    i=i+1;
+  endwhile;
+
+  R0=0;
+  return;
+endif;
+R0=-1;
+return;

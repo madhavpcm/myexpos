@@ -1,0 +1,79 @@
+//Login Syscall
+alias cpid R1;
+alias centry R2;
+alias uptr R3;
+alias syscall R4;
+alias ret R5;
+
+cpid=[SYSTEM_STATUS_TABLE+5*CORE + 1];
+centry = PROCESS_TABLE + cpid*16;
+
+//Switch Stacks
+[centry + 13] = SP;
+uptr = SP;
+SP = [centry + 11]*512 -1;
+
+
+ret =[PTBR +(uptr-1)*2/512]*512 + (uptr-1)%512 ;
+
+if(cpid != INIT_PROCESS) then
+  [ret]= -2;
+  goto _return_;
+endif;
+
+
+//Extract Syscall
+syscall = [[PTBR + (uptr-5)*2/512]*512 + (uptr-5)%512];
+
+  alias username R6;
+  alias password R7;
+  alias ui R8;
+
+  [centry+ 9] = INT_LOGIN;
+  username = [[PTBR + (uptr-4)*2/512]*512 + (uptr-4)%512];
+  password = [[PTBR + (uptr-3)*2/512]*512 + (uptr-3)%512];
+
+  ui = 0;
+  while(ui < MAX_USER_NUM) do
+    if([USER_TABLE + ui *2] == username) then
+      //user already exists
+      break;
+    endif;
+    ui=ui+1;
+  endwhile;
+
+  if(ui == MAX_USER_NUM) then
+    [ret] = -1;
+    goto _return_;
+  endif;
+
+  encrypt R7;
+
+  if([USER_TABLE + ui*2 +1] != R7) then
+    [ret]=-1;
+    goto _return_;
+  endif;
+
+  [PROCESS_TABLE + SHELL_PROCESS*16 + 4] =CREATED;
+  [PROCESS_TABLE + SHELL_PROCESS*16 + 3] =ui;
+
+  [PROCESS_TABLE + cpid*16 + 4] = WAIT_PROCESS;
+  [PROCESS_TABLE + cpid*16 + 5] = SHELL_PROCESS;
+
+  [SYSTEM_STATUS_TABLE] = ui;
+
+
+  multipush( R1, R2, R3, R4, R5, R6, R7, R8);
+  
+  call SCHEDULER;
+
+  multipop( R1, R2, R3, R4, R5, R6, R7, R8);
+
+
+
+
+_return_:
+
+[centry + 9] =0;
+SP=uptr;
+ireturn;

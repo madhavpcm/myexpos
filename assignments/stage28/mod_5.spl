@@ -1,0 +1,129 @@
+//Context Switch Module
+//if the state of the process is created
+//  > state in process table is set to CREATED 
+//  > UPTR has been set to top of user stack
+alias currPID R6;
+
+//push BP
+multipush(BP);
+
+
+alias i R7;
+alias flag R8;
+alias pentry R9;
+alias newPID R10;
+alias loop R11;
+
+currPID = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
+[PROCESS_TABLE + currPID * 16 + 12] = SP % 512;
+[PROCESS_TABLE + currPID * 16 + 14] = PTBR;
+[PROCESS_TABLE + currPID * 16 + 15] = PTLR;
+
+R1= ACQUIRE_SCHED_LOCK;
+call MOD_8;
+
+flag=0;
+
+if(CORE == PRIMARY_CORE) then
+  if([SYSTEM_STATUS_TABLE+5] != 0) then
+    if([PROCESS_TABLE + SWAPPER_DAEMON*16 + 4] == WAIT_DISK) then
+      //choose idle
+      flag = 1;
+      newPID = IDLE_PROCESS;
+    else
+      flag =1;
+      newPID = SWAPPER_DAEMON;
+    endif;
+  else
+    i =(1+currPID )% 16;
+    loop =0;
+    //pentry = PROCESS_TABLE + i*16 
+    while(loop < 16)do  
+      pentry = PROCESS_TABLE + i*16 ;
+      //skip the process if its idle, idle2, or running on other
+      if( i == IDLE_PROCESS || i == IDLE2_PROCESS || i == [SYSTEM_STATUS_TABLE+6] || i == SWAPPER_DAEMON) then
+        i=(i+1)%16;
+        loop=loop+1;
+        continue;
+      endif;
+      if( [pentry+6] != 1 ) then
+        if ([ pentry + 4] == CREATED || [ pentry+ 4] == READY) then
+          flag = 1;
+          newPID = i; 
+          break;
+        endif;
+      endif;
+      i=(i+1)%16;
+      loop=loop+1;
+    endwhile; 
+  endif;
+
+ 
+  if([SYSTEM_STATUS_TABLE+7] == 1 && [SYSTEM_STATUS_TABLE+6] != IDLE2_PROCESS || flag == 0) then
+    newPID = 0;
+  endif;
+else
+  if([SYSTEM_STATUS_TABLE+5] != 0 || [SYSTEM_STATUS_TABLE+7] !=0) then
+    flag = 1;
+    newPID = IDLE2_PROCESS;
+  else
+    i=(i+1)%16;
+    loop =0;
+    //pentry = PROCESS_TABLE + i*16 
+    while(loop < 16)do  
+      pentry = PROCESS_TABLE + i*16 ;
+      if( i == IDLE2_PROCESS || i == [SYSTEM_STATUS_TABLE+1] || i == IDLE_PROCESS || i == SHELL_PROCESS || i == SWAPPER_DAEMON   || i == LOGIN_PROCESS) then
+        i=(i+1)%16;
+        loop=loop+1;
+        continue;
+      endif;
+      if( [pentry+6] != 1 ) then
+        if ([ pentry + 4] == CREATED || [ pentry+ 4] == READY) then
+          flag = 1;
+          newPID = i; 
+          break;
+        endif;
+      endif;
+      i=(i-2)%12 +3;
+      loop=loop+1;
+    endwhile; 
+  endif;
+
+ 
+  if(flag == 0) then
+    newPID = IDLE2_PROCESS;
+  endif;
+endif;
+
+[SYSTEM_STATUS_TABLE + 5*CORE+ 1] = newPID;
+
+PTBR = [PROCESS_TABLE + newPID * 16 + 14];
+PTLR = [PROCESS_TABLE + newPID * 16 + 15];
+
+
+if([PROCESS_TABLE + newPID * 16 +4 ] == CREATED) then
+ 	BP = [[PROCESS_TABLE + newPID * 16+ 11]*512];
+
+  multipush(R1,R2);
+  R1=RELEASE_LOCK;
+  R2=SCHED_LOCK;
+  call MOD_8;
+  multipop(R1,R2);
+
+  SP = [PROCESS_TABLE + newPID * 16 + 13];
+  [PROCESS_TABLE + newPID * 16 + 4] = RUNNING;
+  [PROCESS_TABLE + newPID * 16 + 9] = 0;
+  ireturn;
+endif;
+
+multipush(R1,R2);
+R1=RELEASE_LOCK;
+R2=SCHED_LOCK;
+call MOD_8;
+multipop(R1,R2);
+
+SP = [PROCESS_TABLE + newPID * 16 + 11]* 512 + [PROCESS_TABLE + newPID * 16 + 12];
+
+[PROCESS_TABLE + newPID * 16 +4] = RUNNING;
+multipop(BP);
+return;

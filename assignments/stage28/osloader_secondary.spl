@@ -1,0 +1,5 @@
+[83*512] =[69*512 + 1];
+PTBR = PAGE_TABLE_BASE + IDLE2_PROCESS*20;
+PTLR = 10;
+SP = 8*512;
+ireturn;

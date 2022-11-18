@@ -1,0 +1,153 @@
+//Semget and Semrelease wrappers
+alias cpid R1;
+alias centry R2;
+alias uptr R3;
+alias syscall R4;
+
+cpid=[SYSTEM_STATUS_TABLE+5*CORE + 1];
+centry = PROCESS_TABLE + cpid*16;
+
+//Switch Stacks
+[centry + 13] = SP;
+uptr = SP;
+SP = [centry + 11]*512 -1;
+
+multipush(R1,R2);
+R1=ACQUIRE_KERN_LOCK;
+call MOD_8;
+multipop(R1,R2);
+
+//Extract Syscall
+syscall = [[PTBR + (uptr-5)*2/512]*512 + (uptr-5)%512];
+if(syscall == INT_SEMGET) then
+  //Mode flag
+  [centry + 9] = INT_SEMGET;
+  alias rentry R5;
+  alias iter R6;  
+  //get resource table from uap 
+  rentry = [centry + 11]*512 + RESOURCE_TABLE_OFFSET;
+  iter =0;
+  //iterate resource table
+  while(iter < 8) do 
+    //if resource entry free
+    if([rentry+2*iter] == -1)then
+      break;
+    endif;
+    iter=iter+1;
+  endwhile;
+
+  //no free netry in resource table
+  if(iter == 8) then
+    //return value to -2
+    multipush(R1,R2);
+    R1=RELEASE_LOCK;
+    R2=KERN_LOCK;
+    call MOD_8;
+    multipop(R1,R2);
+
+
+    [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -1;
+    //reset mode
+    [centry + 9] = 0;
+    //switch stacks
+    SP = [centry + 13];
+    ireturn;
+  endif;
+  
+  //occupy this rentry with a semaphore
+  [rentry + iter*2] = SEMAPHORE;
+
+  [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = iter;
+  multipush(R1,R2,R3,R4,R5,R6);
+
+    R1=ACQUIRE_SEMAPHORE;
+    R2=[SYSTEM_STATUS_TABLE+5*CORE + 1];
+    call RESOURCE_MANAGER;
+
+  multipop(R1,R2,R3,R4,R5,R6);
+
+  //no free semaphores
+  if(R0 == -1) then
+    multipush(R1,R2);
+    R1=RELEASE_LOCK;
+    R2=KERN_LOCK;
+    call MOD_8;
+    multipop(R1,R2);
+
+    [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -2;
+    //reset mode
+    [centry + 9 ] = 0;
+    //switch stacks
+    SP = [centry + 13];
+    ireturn;
+  endif;
+
+  //return per process resource table index
+  multipush(R1,R2);
+  R1=RELEASE_LOCK;
+  R2=KERN_LOCK;
+  call MOD_8;
+  multipop(R1,R2);
+
+  [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = iter;
+  [rentry + iter*2 + 1] = R0;
+  //loop thru it and find free entries
+  [centry + 9] =0;
+  //Switch stacks
+  SP = [centry + 13];
+  ireturn;
+endif;
+
+// semrelease syscall
+if(syscall == INT_SEMRELEASE) then
+  //Mode
+  [centry + 9] = INT_SEMRELEASE;
+  alias semid R6;
+  alias rentry R7;  
+  //Get argument 1 , i.e semid
+  semid = [[PTBR + (uptr-4)*2/512]*512 + (uptr-4)%512];
+  //get resource table from uap 
+  rentry = [centry + 11]*512 + RESOURCE_TABLE_OFFSET;
+
+  //Invalid case
+  if( semid < 0 || semid > 7 || [rentry + semid*2] != SEMAPHORE) then
+    //set return value to -1
+    multipush(R1,R2);
+    R1=RELEASE_LOCK;
+    R2=KERN_LOCK;
+    call MOD_8;
+    multipop(R1,R2);
+
+    [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -1;
+    //byebye
+    [centry + 9] =0;
+    //Switch stacks
+    SP = [centry + 13];
+    ireturn;
+  endif;
+
+  //Call resource manager module
+  multipush(R1,R2,R3,R4,R5,R6,R7);
+    R1=RELEASE_SEMAPHORE;
+    R2=[SYSTEM_STATUS_TABLE+5*CORE + 1];
+    R3=[rentry+2*semid+1];
+    call RESOURCE_MANAGER;
+  multipop(R1,R2,R3,R4,R5,R6,R7);
+
+  [rentry + semid*2] = -1;
+  //sus
+  //[rentry + semid*2+1] = -1;
+  [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = 0;
+endif;
+
+//reset mode
+multipush(R1,R2);
+R1=RELEASE_LOCK;
+R2=KERN_LOCK;
+call MOD_8;
+multipop(R1,R2);
+
+[centry + 9] =0;
+//Switch stacks
+SP = [centry + 13];
+ireturn;

@@ -1,0 +1,38 @@
+alias funcno R1;
+
+if( funcno == ACQUIRE_KERN_LOCK ) then
+  if([SYSTEM_STATUS_TABLE+5] == 1 || [SYSTEM_STATUS_TABLE+7] == 1) then
+    if(CORE == SECONDARY_CORE) then
+      [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+6] * 16 + 4] = READY;
+
+      multipush(R1);
+      call SCHEDULER;
+      multipop(R1);
+    endif;
+  endif;
+  while( tsl(KERN_LOCK) == 1)do
+    continue;
+  endwhile;
+  return;
+endif;
+
+if(funcno == ACQUIRE_SCHED_LOCK) then
+  while(tsl(SCHED_LOCK) == 1) do
+    continue;
+  endwhile;
+  return;
+endif;
+
+if(funcno == ACQUIRE_GLOCK) then
+  while(tsl(GLOCK) == 1) do
+    continue;
+  endwhile;
+  return;
+endif;
+
+if(funcno == RELEASE_LOCK) then
+  alias lockvaraddr R2;
+
+  [lockvaraddr] = 0;
+  return;
+endif;

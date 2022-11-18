@@ -1,0 +1,37 @@
+int main(){
+  decl  
+    int lseek;
+    int perm;
+    str filename;
+    str word;
+    int num;
+    int temp;
+    int a;
+    int filedesc;
+    int i;
+    int seek;
+  enddecl
+  begin
+    temp = exposcall("Write", -2 , "Filename") ;
+    temp = exposcall("Read", -1, filename);
+
+    filedesc = exposcall("Open", filename );
+    temp =exposcall("Seek",filedesc, 2047 );
+
+    i=2000;
+    while(i<=2513) do 
+      temp = exposcall("Write", filedesc, i);
+      i=i+1;
+    endwhile;
+
+    temp =exposcall("Seek",filedesc, -1 ) ;
+    while(num > 1) do
+      temp = exposcall("Read", filedesc, num);
+      temp = exposcall("Write", -2, num);
+      temp =exposcall("Seek",filedesc, -2 ) ;
+    endwhile;
+    temp = exposcall("Close", filedesc);
+    return 0;
+  end 
+}
+

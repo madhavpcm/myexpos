@@ -1,0 +1,161 @@
+//Module 2: Memory Manager Module
+
+alias retval R0;
+alias funcno R1;
+alias pageno R2;
+alias iter R3;
+
+if(funcno == GET_FREE_PAGE) then
+  //increment wait_mem_count
+  [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;
+  // if mem free count is 0, schedule another process, i.e when there are no memory pagesavailable
+  while([SYSTEM_STATUS_TABLE +2] ==0)do
+
+    //set process state to wait_mem
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+5*CORE + 1]*16 + 4]  = WAIT_MEM;
+
+    multipush(R1,R2);
+    R1=RELEASE_LOCK;
+    R2=KERN_LOCK;
+    call MOD_8;
+
+    //try scheduling another process
+    call SCHEDULER;
+    
+    R1=ACQUIRE_KERN_LOCK;
+    call MOD_8;
+    multipop(R1,R2);
+
+  endwhile;
+  
+  [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] - 1;
+  [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
+  
+  iter = 76;
+  while(iter < MAX_MEM_PAGE) do
+    if([MEMORY_FREE_LIST+ iter] == 0)then 
+      [MEMORY_FREE_LIST +iter ] =1;
+      retval = iter;
+      return;
+    endif;
+    iter=iter+1; 
+  endwhile;
+
+endif;
+
+if(funcno == GET_FREE_BLOCK) then
+  iter=DISK_FREE_AREA;
+  //loop through allotted disk blocks 
+  while(iter < DISK_SWAP_AREA) do 
+    // if one is free return the block no of it
+    if( [DISK_FREE_LIST + iter] == 0) then
+      //occupy it
+      [DISK_FREE_LIST + iter] = 1;
+      R0 = iter;
+      return;
+    endif;
+    iter = iter+1;
+  endwhile;
+  //disk full error
+  R0 = -1;
+  return;
+endif;
+
+if(funcno == RELEASE_PAGE) then
+  [MEMORY_FREE_LIST + pageno]=[MEMORY_FREE_LIST +pageno] - 1;
+
+  if([MEMORY_FREE_LIST +pageno ] == 0) then
+    [SYSTEM_STATUS_TABLE + 2]= [SYSTEM_STATUS_TABLE + 2]+1;
+  endif;
+  iter=0;
+  while(iter < MAX_PROC_NUM) do
+    if([PROCESS_TABLE + iter*16 + 4] == WAIT_MEM ) then
+      [PROCESS_TABLE + iter*16 + 4] = READY;
+    endif;
+  iter = iter + 1;
+  endwhile;
+
+  return;
+endif;
+
+if (funcno == GET_CODE_PAGE) then
+//Arguments
+  alias blockno R2;
+//Implmentation
+  alias iter R3;
+  alias jter R4;
+  alias ptbr R5;
+
+  iter =0;
+  //iterate through all DISKMAP entries of each process
+  while( iter < 16) do
+    //offset of first codeblock
+    jter=4;
+    //get ptbr of ith process
+    ptbr = [PROCESS_TABLE + iter*16 + 14];
+    //loop till code block 1 2 3 4 offsets
+    while (jter < 8) do 
+      //check if blockno is used in any other code page
+      //check if that code page is valid in the page table of that process, 
+      if( [DISK_MAP_TABLE + iter*10 + jter] == blockno && [ptbr + jter*2 ] != -1) then
+         R0 =[ptbr + jter*2];
+         // increment memory free list to show that it is being shared by one more process
+         [MEMORY_FREE_LIST + R0] = [MEMORY_FREE_LIST + R0]+1;
+         //if is return the memory page of the that code block from current process' page table
+         return;
+      endif;
+      jter=jter+1;
+    endwhile;
+    iter=iter+1;
+  endwhile;
+  //if code not in any disk map entry
+
+  multipush(R1,R2);
+
+  R1 = GET_FREE_PAGE;
+  call MEMORY_MANAGER;
+
+  multipop(R1,R2);
+
+  // Load the newly acquired page with the code
+  multipush(R0,R1,R2);
+
+  R4 = blockno; 
+  R3 = R0;
+  R2 = [SYSTEM_STATUS_TABLE+5*CORE + 1];
+  R1 = DISK_LOAD;
+  call DEVICE_MANAGER;
+
+  multipop(R0,R1,R2);
+
+  return;
+endif;
+
+if( funcno == RELEASE_BLOCK) then
+  alias blockno R2;
+
+  [DISK_FREE_LIST + blockno] = [DISK_FREE_LIST + blockno] -1 ;
+  return;
+endif;
+
+if(funcno == GET_SWAP_BLOCK) then
+  iter=DISK_SWAP_AREA;
+  //loop through allotted disk blocks 
+  while(iter < DISK_SIZE) do 
+    // if one is free return the block no of it
+    if( [DISK_FREE_LIST + iter] == 0) then
+      //occupy it
+      [DISK_FREE_LIST + iter] = 1;
+      R0 = iter;
+      return;
+    endif;
+    iter = iter+1;
+  endwhile;
+  //disk full error
+  R0 = -1;
+  return;
+endif;
+
+R0=-1;
+return;
+

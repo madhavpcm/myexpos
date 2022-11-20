@@ -39,17 +39,18 @@ if(syscall == INT_SEMGET) then
   //no free netry in resource table
   if(iter == 8) then
     //return value to -2
-    multipush(R1,R2);
-    R1=RELEASE_LOCK;
-    R2=KERN_LOCK;
-    call MOD_8;
-    multipop(R1,R2);
 
 
     [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -1;
     //reset mode
     [centry + 9] = 0;
     //switch stacks
+    multipush(R1,R2);
+    R1=RELEASE_LOCK;
+    R2=KERN_LOCK;
+    call MOD_8;
+    multipop(R1,R2);
+
     SP = [centry + 13];
     ireturn;
   endif;
@@ -68,32 +69,32 @@ if(syscall == INT_SEMGET) then
 
   //no free semaphores
   if(R0 == -1) then
+    [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -2;
+    //reset mode
+    [centry + 9 ] = 0;
     multipush(R1,R2);
     R1=RELEASE_LOCK;
     R2=KERN_LOCK;
     call MOD_8;
     multipop(R1,R2);
 
-    [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -2;
-    //reset mode
-    [centry + 9 ] = 0;
     //switch stacks
     SP = [centry + 13];
     ireturn;
   endif;
 
   //return per process resource table index
-  multipush(R1,R2);
-  R1=RELEASE_LOCK;
-  R2=KERN_LOCK;
-  call MOD_8;
-  multipop(R1,R2);
 
   [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = iter;
   [rentry + iter*2 + 1] = R0;
   //loop thru it and find free entries
   [centry + 9] =0;
   //Switch stacks
+  multipush(R1,R2);
+  R1=RELEASE_LOCK;
+  R2=KERN_LOCK;
+  call MOD_8;
+  multipop(R1,R2);
   SP = [centry + 13];
   ireturn;
 endif;
@@ -112,16 +113,16 @@ if(syscall == INT_SEMRELEASE) then
   //Invalid case
   if( semid < 0 || semid > 7 || [rentry + semid*2] != SEMAPHORE) then
     //set return value to -1
-    multipush(R1,R2);
-    R1=RELEASE_LOCK;
-    R2=KERN_LOCK;
-    call MOD_8;
-    multipop(R1,R2);
 
     [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -1;
     //byebye
     [centry + 9] =0;
     //Switch stacks
+    multipush(R1,R2);
+    R1=RELEASE_LOCK;
+    R2=KERN_LOCK;
+    call MOD_8;
+    multipop(R1,R2);
     SP = [centry + 13];
     ireturn;
   endif;
@@ -141,13 +142,13 @@ if(syscall == INT_SEMRELEASE) then
 endif;
 
 //reset mode
+
+[centry + 9] =0;
 multipush(R1,R2);
 R1=RELEASE_LOCK;
 R2=KERN_LOCK;
 call MOD_8;
 multipop(R1,R2);
-
-[centry + 9] =0;
 //Switch stacks
 SP = [centry + 13];
 ireturn;

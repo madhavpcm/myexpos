@@ -154,6 +154,7 @@ if( syscall == INT_DELETE) then
       call RESOURCE_MANAGER;
   multipop(R1,R2,R3,R5,R7,R8,R14);
 
+ret = [PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512;
     [ret] = -2;
     goto _return_;
   endif;
@@ -202,11 +203,12 @@ if( syscall == INT_DELETE) then
     j=j+1;
   endwhile;
 
+ret = [PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512;
   [ret] = 0;
   multipush(R1,R2,R3,R5,R7,R8);
     R1=RELEASE_INODE;
     R2=i;
-    R3=[SYSTEM_STATUS_TABLE+1];
+    R3=[SYSTEM_STATUS_TABLE+5*CORE+1];
     call RESOURCE_MANAGER;
   multipop(R1,R2,R3,R5,R7,R8);
 

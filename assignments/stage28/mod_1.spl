@@ -8,8 +8,8 @@ alias pentry R8;
 
 if( funcno == GET_PCB_ENTRY) then
   //no cpid
-  iter=0;
-  while(iter < 16)do 
+  iter=3;
+  while(iter < IDLE2_PROCESS)do 
     pentry = PROCESS_TABLE + iter*16;
     //terminated process are free to donate process table entry
     if([pentry + 4] == TERMINATED) then

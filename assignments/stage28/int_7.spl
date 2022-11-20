@@ -39,7 +39,6 @@ if(filedesc != -2) then
   ofti = [rentry + 2*filedesc+ 1];
 //inode index
   i = [OPEN_FILE_TABLE + ofti*4];
-  breakpoint;
   //permission / ownership issue
   //slightly sus
   if([centry+3] != ROOT&& [centry + 3] != [INODE_TABLE + i*16 +3] && [INODE_TABLE + i*16 +4] == EXCLUSIVE ) then
@@ -54,11 +53,9 @@ if(filedesc != -2) then
     call RESOURCE_MANAGER;
   multipop( R1, R2, R3, R4, R5, R6, R7, R8,R9,R10);
 
-  breakpoint;
   //file got deleted or something idk
   ret = [PTBR + (uptr-1)*2/512]*512 + (uptr-1) % 512;
   if(R0 == -1) then
-    breakpoint;
     [ret] = -1;
     goto _return_;
   endif;
@@ -78,7 +75,6 @@ if(filedesc != -2) then
       goto _return_;
   endif;
 
-  breakpoint;
   if([lseek] % 512 == 0 && [lseek] == [INODE_TABLE + i*16 + 2]) then
     /// get a new block
     multipush( R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
@@ -95,7 +91,6 @@ if(filedesc != -2) then
     //set new block
     [INODE_TABLE + i*16 + 8 + ([lseek]/512)] = R0;
   endif;
-  breakpoint;
 
 	multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
     R1=BUFFERED_WRITE;
@@ -104,7 +99,6 @@ if(filedesc != -2) then
     R4= word;
     call FILE_MANAGER;
 	multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
-  breakpoint;
   
   //increment global ds that hold filesize
   if([lseek] == [INODE_TABLE + i*16 + 2])then
@@ -120,7 +114,6 @@ if(filedesc != -2) then
     R2= i;
     call RESOURCE_MANAGER;
 	multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
-  breakpoint;
 
   ret = [PTBR + (uptr-1)*2/512]*512 + (uptr-1) % 512;
   [ret] = 0;

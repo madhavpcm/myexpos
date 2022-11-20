@@ -195,12 +195,12 @@ if(syscall == INT_GETUNAME) then
 endif;
 
 _return_:
+[centry + 9] =0;
 multipush(R1,R2);
 R1=RELEASE_LOCK;
 R2=KERN_LOCK;
 call MOD_8;
 multipop(R1,R2);
 
-[centry + 9] =0;
 SP=uptr;
 ireturn;

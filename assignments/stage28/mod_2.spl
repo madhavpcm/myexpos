@@ -32,7 +32,7 @@ if(funcno == GET_FREE_PAGE) then
   [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
   
   iter = 76;
-  while(iter < MAX_MEM_PAGE) do
+  while(iter < 128) do
     if([MEMORY_FREE_LIST+ iter] == 0)then 
       [MEMORY_FREE_LIST +iter ] =1;
       retval = iter;
@@ -141,7 +141,7 @@ endif;
 if(funcno == GET_SWAP_BLOCK) then
   iter=DISK_SWAP_AREA;
   //loop through allotted disk blocks 
-  while(iter < DISK_SIZE) do 
+  while(iter < 512) do 
     // if one is free return the block no of it
     if( [DISK_FREE_LIST + iter] == 0) then
       //occupy it

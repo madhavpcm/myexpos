@@ -61,6 +61,7 @@ if(syscall == INT_OPEN) then
   [rentry + 2*i + 1] = R0;
 
   //return resource table index
+  ret = [PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512;
   [ret] = i;
   goto _return_;
 endif;
@@ -92,6 +93,7 @@ if(syscall == INT_CLOSE) then
 
   [rentry + 2*filedesc] = -1;
   
+  ret = [PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512;
   [ret] = 0;
   goto _return_;
 endif;

@@ -12,7 +12,7 @@ if(funcno == SWAP_OUT) then
   proc = -1;
   maxtick =-1;
   maxtickproc =-1;
-  while(iter < SWAPPER_DAEMON) do
+  while(iter < IDLE2_PROCESS) do
     pentry = PROCESS_TABLE + iter * 16;
 
     if([pentry + 6] != 1) then
@@ -41,15 +41,9 @@ if(funcno == SWAP_OUT) then
     return;
   endif;
 
-
   if(proc == -1) then
-    if(maxtickproc == IDLE2_PROCESS) then
-      [SYSTEM_STATUS_TABLE + 5] = 0;
-      return;
-    endif;
-    proc = maxtickproc;
+    proc= maxtickproc;
   endif;
-
   alias pgentry R6;
 
   pentry = PROCESS_TABLE + proc*16;
@@ -80,10 +74,10 @@ if(funcno == SWAP_OUT) then
   while( iter < 4) do
     if([pgentry+iter*2] != - 1 && [MEMORY_FREE_LIST + [pgentry + iter*2]] == 1) then
       //get a swap area block from disk
-      multipush(R1,R2,R3);
+      multipush(R1,R2,R3,R6);
         R1=GET_SWAP_BLOCK;
         call MEMORY_MANAGER;
-      multipop(R1,R2,R3);
+      multipop(R1,R2,R3,R6);
 
       [dentry+iter] = R0;
 
@@ -93,6 +87,7 @@ if(funcno == SWAP_OUT) then
         R2= SWAPPER_DAEMON;
         R3= [pgentry+iter*2];
         R4= R0;
+        breakpoint;
         call DEVICE_MANAGER;
       multipop(R1,R2,R3,R4,R5,R6,R7);
       multipush(R1,R2,R3);
@@ -121,6 +116,7 @@ if(funcno == SWAP_OUT) then
       R2= SWAPPER_DAEMON;
       R3= [pgentry+iter*2];
       R4= R0;
+      breakpoint;
       call DEVICE_MANAGER;
     multipop(R1,R2,R3,R4,R5,R6,R7);
     multipush(R1,R2,R3);
@@ -149,7 +145,7 @@ if(funcno == SWAP_IN) then
   maxtick = -1;
   maxtickproc = -1;
   iter =3;
-  while( iter < SWAPPER_DAEMON) do
+  while( iter < IDLE2_PROCESS) do
     pentry = PROCESS_TABLE + iter*16;
     if([pentry+4] == READY && [pentry +6 ] == 1) then
       if([pentry] > maxtick) then
@@ -198,7 +194,6 @@ if(funcno == SWAP_IN) then
 
       multipop(R0);
       multipop(R4);
-      breakpoint;
       [pgentry + 2*iter]  = R0;
       [pgentry + 2*iter+1]  = "0110";
 

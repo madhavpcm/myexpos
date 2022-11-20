@@ -212,7 +212,6 @@ if(funcno == BUFFERED_WRITE) then
   buff=blockno %4;
 
   //acquire buffer lock
-  breakpoint;
   multipush(R1,R2,R3,R4,R5,R10);
     R1= ACQUIRE_BUFFER;  
     R2= buff;
@@ -220,7 +219,6 @@ if(funcno == BUFFERED_WRITE) then
     call RESOURCE_MANAGER;
   multipop(R1,R2,R3,R4,R5,R10);
 
-  breakpoint;
   bentry = BUFFER_TABLE + buff*4;
   //buffer occupied
   if([bentry] != blockno) then
@@ -238,7 +236,6 @@ if(funcno == BUFFERED_WRITE) then
       [bentry+1] =0;
     endif;
 
-  breakpoint;
     multipush(R1,R2,R3,R4,R5,R6,R10);
       R1= DISK_LOAD;
       R4 = blockno;
@@ -250,7 +247,6 @@ if(funcno == BUFFERED_WRITE) then
     [bentry] = blockno;
   endif;
 
-  breakpoint;
    [(BUFFER_BASE + buff)*512 + offset] = memory; 
    [bentry+1] = 1;
 
@@ -262,6 +258,5 @@ if(funcno == BUFFERED_WRITE) then
   multipop(R1,R2,R3,R4,R5);
 
   
-  breakpoint;
   return;
 endif;

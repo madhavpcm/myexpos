@@ -5,6 +5,11 @@ SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+5*CORE+1] * 16 + 11]*512 -1;
 backup;
 
 // get pid of process whose terminal read just completed 
+multipush(R1,R2);
+R1=ACQUIRE_KERN_LOCK;
+call MOD_8;
+multipop(R1,R2);
+
 
 
 alias reqPID R5;
@@ -19,6 +24,12 @@ R2 = reqPID;
 call MOD_0;
 
 multipop(R0, R1, R2, R3, R5);
+
+multipush(R1,R2);
+R1=RELEASE_LOCK;
+R2=KERN_LOCK;
+call MOD_8;
+multipop(R1,R2);
 
 
 // switch kernel stacks

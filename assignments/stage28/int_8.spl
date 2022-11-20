@@ -26,14 +26,14 @@ childpid = R0;
 
 //If child pid is -1, that means process table is full currently.
 if( childpid == -1)then
+  [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -1;
+  //Reset values and switch back to user mode
+  [PROCESS_TABLE + parentpid * 16 + 9 ] = 0;
   multipush(R1,R2);
   R1=RELEASE_LOCK;
   R2=KERN_LOCK;
   call MOD_8;
   multipop(R1,R2);
-  [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = -1;
-  //Reset values and switch back to user mode
-  [PROCESS_TABLE + parentpid * 16 + 9 ] = 0;
   SP = uptr; 
   //Try again when pcb has an entry
   ireturn;

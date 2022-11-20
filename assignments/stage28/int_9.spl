@@ -20,6 +20,8 @@ cpid = [SYSTEM_STATUS_TABLE+5*CORE + 1];
 //Set SP to UAP
 SP = [PROCESS_TABLE + cpid * 16 + 11]*512-1;
 
+R1= ACQUIRE_KERN_LOCK;
+call MOD_8;
 //Address translate and get the executable name
 arg1 = [ [PTBR + (uptr-4)*2/512]*512 + (uptr-4)%512 ];
 
@@ -41,6 +43,12 @@ endwhile;
 //return if file isnt found
 if(flag == 0) then 
   //replace sp back
+  multipush(R1,R2);
+  R1=RELEASE_LOCK;
+  R2=KERN_LOCK;
+  call MOD_8;
+  multipop(R1,R2);
+
   SP = [PROCESS_TABLE + cpid * 16 + 13];
   //reset mode
   [PROCESS_TABLE + cpid * 16 + 9] = 0;
@@ -49,8 +57,6 @@ if(flag == 0) then
   ireturn;
 endif;
 
-R1= ACQUIRE_KERN_LOCK;
-call MOD_8;
 //exit syscall
 multipush(R0,R1,R2,R3,R7, R8,R10);
 

@@ -1,6 +1,5 @@
 // Ex Handler
 //show process is in exhandler
-    breakpoint;
 alias uptr R5;
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+5*CORE + 1]*16 + 9] = -1;
 // switch kernel stacks
@@ -25,6 +24,7 @@ if( EC != 0 || uptr == 512*PTLR -1) then
     print "Ex.Inst";
   endif;
   if( EC == 2) then
+    breakpoint;
       print "Ex.Mem";
   endif;
   if( EC == 3) then
@@ -90,14 +90,16 @@ endif;
 
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+5*CORE + 1] * 16 +9 ] = 0;
 
-multipop(EIP);
-restore;
   multipush(R1,R2);
   R1=RELEASE_LOCK;
   R2=KERN_LOCK;
   call MOD_8;
   multipop(R1,R2);
+multipop(EIP);
+restore;
 SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+5*CORE + 1] * 16 + 13] + 1; 
 [[PTBR + SP*2/512]*512 + SP % 512] = EIP;
+EC=-1;
+EPN=-1;
 // goto user mode but not the next IP
 ireturn;

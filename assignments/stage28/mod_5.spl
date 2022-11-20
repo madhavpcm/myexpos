@@ -14,13 +14,14 @@ alias pentry R9;
 alias newPID R10;
 alias loop R11;
 
+R1= ACQUIRE_SCHED_LOCK;
+call MOD_8;
+
 currPID = [SYSTEM_STATUS_TABLE + 5*CORE + 1];
 [PROCESS_TABLE + currPID * 16 + 12] = SP % 512;
 [PROCESS_TABLE + currPID * 16 + 14] = PTBR;
 [PROCESS_TABLE + currPID * 16 + 15] = PTLR;
 
-R1= ACQUIRE_SCHED_LOCK;
-call MOD_8;
 
 flag=0;
 
@@ -84,7 +85,7 @@ else
           break;
         endif;
       endif;
-      i=(i-2)%12 +3;
+    i=(i+1)%16;
       loop=loop+1;
     endwhile; 
   endif;
@@ -103,6 +104,8 @@ PTLR = [PROCESS_TABLE + newPID * 16 + 15];
 
 if([PROCESS_TABLE + newPID * 16 +4 ] == CREATED) then
  	BP = [[PROCESS_TABLE + newPID * 16+ 11]*512];
+  [PROCESS_TABLE + newPID * 16 + 4] = RUNNING;
+  [PROCESS_TABLE + newPID * 16 + 9] = 0;
 
   multipush(R1,R2);
   R1=RELEASE_LOCK;
@@ -111,8 +114,6 @@ if([PROCESS_TABLE + newPID * 16 +4 ] == CREATED) then
   multipop(R1,R2);
 
   SP = [PROCESS_TABLE + newPID * 16 + 13];
-  [PROCESS_TABLE + newPID * 16 + 4] = RUNNING;
-  [PROCESS_TABLE + newPID * 16 + 9] = 0;
   ireturn;
 endif;
 
@@ -122,8 +123,8 @@ R2=SCHED_LOCK;
 call MOD_8;
 multipop(R1,R2);
 
+[PROCESS_TABLE + newPID * 16 +4] = RUNNING;
 SP = [PROCESS_TABLE + newPID * 16 + 11]* 512 + [PROCESS_TABLE + newPID * 16 + 12];
 
-[PROCESS_TABLE + newPID * 16 +4] = RUNNING;
 multipop(BP);
 return;

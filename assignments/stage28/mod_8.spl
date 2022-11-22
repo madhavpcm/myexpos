@@ -1,10 +1,16 @@
 alias funcno R1;
 
 //Petersons Algorithm
-//unallocated memory locations used
+//kernel lock
 //29584 flag 0
 //29585 flag 1
 //29586 turn
+//define KERN_FLAG 29584;
+//define KERN_TURN 29586;
+//
+//define SCHED_FLAG 29587;
+//define SCHED_TURN 29589;
+
 
 if( funcno == ACQUIRE_KERN_LOCK ) then
   if([SYSTEM_STATUS_TABLE+5] == 1 || [SYSTEM_STATUS_TABLE+7] == 1) then
@@ -16,14 +22,25 @@ if( funcno == ACQUIRE_KERN_LOCK ) then
       multipop(R1);
     endif;
   endif;
-  while( tsl(KERN_LOCK) == 1)do
+
+// i is the core we want to lock
+  [KERN_FLAG+CORE] = 1; //flag[i] = true
+// j = 1 - CORE
+  [KERN_TURN] = (1-CORE);
+
+  while([KERN_FLAG+(1-CORE)] == 1 && [KERN_TURN] == (1-CORE)) do
     continue;
   endwhile;
+  // critical section
   return;
 endif;
 
 if(funcno == ACQUIRE_SCHED_LOCK) then
-  while(tsl(SCHED_LOCK) == 1) do
+  [SCHED_FLAG+CORE] = 1; //flag[i] = true
+// j = 1 - CORE
+  [SCHED_TURN] = (1-CORE);
+
+  while([SCHED_FLAG+(1-CORE)] == 1 && [SCHED_TURN] == (1-CORE)) do
     continue;
   endwhile;
   return;
@@ -38,7 +55,10 @@ endif;
 
 if(funcno == RELEASE_LOCK) then
   alias lockvaraddr R2;
-
-  [lockvaraddr] = 0;
+  if(lockvaraddr == SCHED_LOCK) then
+    [SCHED_FLAG + CORE] = 0;
+  else
+    [KERN_FLAG+ CORE] = 0;
+  endif;
   return;
 endif;

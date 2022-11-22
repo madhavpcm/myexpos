@@ -96,27 +96,35 @@ int main()
     pid=exposcall("Getpid");
 
     if(pid==5) then
+      breakpoint;
       file="temp1.dat";
     endif;
     if(pid==6) then
+      breakpoint;
       file="temp2.dat";
     endif;
     if(pid==7) then
+      breakpoint;
       file="temp3.dat";
     endif;
     if(pid==8) then
+      breakpoint;
       file="temp4.dat";
     endif;
     if(pid==9) then
+      breakpoint;
       file="temp5.dat";
     endif;
     if(pid==10) then
+      breakpoint;
       file="temp6.dat";
     endif;
     if(pid==11) then
+      breakpoint;
       file="temp7.dat";
     endif;
     if(pid==12) then
+      breakpoint;
       file="temp8.dat";
     endif;
 

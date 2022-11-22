@@ -24,7 +24,6 @@ if( EC != 0 || uptr == 512*PTLR -1) then
     print "Ex.Inst";
   endif;
   if( EC == 2) then
-    breakpoint;
       print "Ex.Mem";
   endif;
   if( EC == 3) then

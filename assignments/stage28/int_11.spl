@@ -56,12 +56,9 @@ if(syscall == INT_WAIT) then
   call SCHEDULER;
   multipop(R1,R2,R3,R4,R5);
     
-  multipush(R1);
-  R1=ACQUIRE_KERN_LOCK;
-  call MOD_8;
-  multipop(R1);
   //Set return value as 0
   [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = 0;
+  goto _no_release_return_;
 
 endif;
 
@@ -96,7 +93,7 @@ if(syscall == INT_GETPPID) then
     [[PTBR + (uptr-1)*2/512]*512 + (uptr-1)%512] = [PROCESS_TABLE +[SYSTEM_STATUS_TABLE+5*CORE + 1]*16 + 2];
 endif;
 
-[centry + 9] =0;
+
 //Reset mode
 multipush(R1,R2);
 R1=RELEASE_LOCK;
@@ -104,6 +101,8 @@ R2=KERN_LOCK;
 call MOD_8;
 multipop(R1,R2);
 
+_no_release_return_:
+[centry + 9] =0;
 //Switch stacks
 SP = [centry + 13];
 ireturn;

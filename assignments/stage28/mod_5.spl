@@ -44,7 +44,6 @@ if(CORE == PRIMARY_CORE) then
       //skip the process if its idle, idle2, or running on other
       if( i == IDLE_PROCESS || i == IDLE2_PROCESS || i == [SYSTEM_STATUS_TABLE+6] || i == SWAPPER_DAEMON) then
         i=(i+1)%16;
-        loop=loop+1;
         continue;
       endif;
       if( [pentry+6] != 1 ) then
@@ -75,7 +74,6 @@ else
       pentry = PROCESS_TABLE + i*16 ;
       if( i == IDLE2_PROCESS || i == [SYSTEM_STATUS_TABLE+1] || i == IDLE_PROCESS || i == SHELL_PROCESS || i == SWAPPER_DAEMON   || i == LOGIN_PROCESS) then
         i=(i+1)%16;
-        loop=loop+1;
         continue;
       endif;
       if( [pentry+6] != 1 ) then

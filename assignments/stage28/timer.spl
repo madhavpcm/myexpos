@@ -14,7 +14,7 @@ backup;
   call MOD_8;
 if([SYSTEM_STATUS_TABLE+5] != 0 ) then
   //swapping initiated
-  if([SYSTEM_STATUS_TABLE+5*CORE+1] == SWAPPER_DAEMON) then
+  if(CORE== PRIMARY_CORE && [SYSTEM_STATUS_TABLE+5*CORE+1] == SWAPPER_DAEMON) then
     R1= [SYSTEM_STATUS_TABLE+5];
     R2= SWAPPER_DAEMON; 
     call PAGER_MODULE;

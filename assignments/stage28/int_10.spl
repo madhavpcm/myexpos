@@ -8,7 +8,6 @@ alias uptr R13;
 
 currPID = [SYSTEM_STATUS_TABLE+5*CORE+ 1];
 [PROCESS_TABLE + currPID * 16 + 9] = INT_EXIT;
-[PROCESS_TABLE + currPID * 16 + 4] = TERMINATED;
 
 //Switch Stacks
 [PROCESS_TABLE + currPID*16 + 13] = SP;

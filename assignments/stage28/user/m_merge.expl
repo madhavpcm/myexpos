@@ -59,6 +59,7 @@ enddecl
 begin
   x=initialize();
 
+  breakpoint;
   pid1=exposcall("Fork");
   if(pid1!=0) then
     pid2=exposcall("Fork");

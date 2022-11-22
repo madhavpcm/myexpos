@@ -1,5 +1,11 @@
 alias funcno R1;
 
+//Petersons Algorithm
+//unallocated memory locations used
+//29584 flag 0
+//29585 flag 1
+//29586 turn
+
 if( funcno == ACQUIRE_KERN_LOCK ) then
   if([SYSTEM_STATUS_TABLE+5] == 1 || [SYSTEM_STATUS_TABLE+7] == 1) then
     if(CORE == SECONDARY_CORE) then

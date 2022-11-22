@@ -6,6 +6,10 @@
 
 - Resource manager must be carefully dealt with for acquiring/releasing inodes as I switched R2 and R3 parameters.
 
--
+## Stage 28 Bugs 
 
-
+- There was a build error for the expl compiler
+- The expl compiler provided in the tarball of nexsm doesnt support colons. (Maybe its an older build)
+- For peterson algorithm, the uallocated space after access_lock_table is used. The splconstants.cfg file was edited to avail the new constants in mod_8.spl
+- Stage 27 Assignment 5, merging program goes to a rare deadlock in 28. I still have not found out the bug / fix. 
+- Stage 27 Assignment 4, has some synchronization problems in the expl code. It magically works in stage 27 but not completely in 28.

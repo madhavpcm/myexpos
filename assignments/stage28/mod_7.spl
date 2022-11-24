@@ -215,6 +215,7 @@ inline "ADD R6,16";
 [shell_process_table + 1] = 2;
 [shell_process_table + 3] = 1;
 [shell_process_table + 4] = CREATED;
+[shell_process_table + 6] = 0;
 [shell_process_table + 11] = 80;
 [shell_process_table + 12] = 0;
 [shell_process_table + 13] = 8*512;

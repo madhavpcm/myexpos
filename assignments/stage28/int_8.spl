@@ -109,7 +109,6 @@ centry = PROCESS_TABLE + childpid * 16;
 pentry = PROCESS_TABLE + parentpid * 16;
 //Inheriting vars
 [centry + 3] = [pentry + 3]; // UID
-[centry + 4] = CREATED; // State
 [centry + 6] = [pentry + 6]; // swap flag
 [centry + 7] = [pentry + 7]; // INODE
 [centry + 10] =[pentry + 10]; // user area swap flag
@@ -204,6 +203,7 @@ cuap = [ centry + 11] ;
 //Reset Mode flag
 [pentry + 9]=0;
 
+[centry + 4] = CREATED; // State
 multipush(R1,R2);
 R1=RELEASE_LOCK;
 R2=KERN_LOCK;
